@@ -10,6 +10,7 @@ builder.Services.AddEndpointsApiExplorer(); // Para que Swagger descubra los end
 builder.Services.AddSwaggerGen();          // Para generar la UI de Swagger
 
 builder.Services.AddSingleton<IGameService, InMemoryGameService>();
+builder.Services.AddSignalR();
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -17,10 +18,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy =>
                       {
-                          policy.WithOrigins("http://localhost:5173") // ¡IMPORTANTE! Cambia esto al puerto de tu frontend React
+                          policy.WithOrigins("http://localhost:5173") // Puerto del Frontend React
                                 .AllowAnyHeader()
-                                .AllowAnyMethod();
-                          // Para SignalR necesitarás .AllowCredentials() más adelante
+                                .AllowAnyMethod()
+                                .AllowCredentials(); // IMPORTANTE para SignalR si usa autenticación/cookies
                       });
 });
 
@@ -36,8 +37,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors(MyAllowSpecificOrigins);
+app.UseAuthorization();
 
 //app.UseAuthorization(); // Si añades autenticación/autorización más adelante
 
