@@ -200,7 +200,7 @@ namespace backend.Services
 
             result.Success = true;
             result.UpdatedGameState = game; // Actualizar el estado que se devuelve
-            //await NotifyGameStateUpdate(gameId, game); // Notificar a todos
+            await NotifyGameStateUpdate(gameId, game); // Notificar a todos
             return result;
         }
 
@@ -227,7 +227,7 @@ namespace backend.Services
             // Pasar a la siguiente fase (o jugador) después de fortificar (normalmente se termina turno aquí)
             // game.CurrentPhase = ???; // O llamar a EndTurn directamente? Depende de las reglas exactas.
 
-            //await NotifyGameStateUpdate(gameId, game);
+            await NotifyGameStateUpdate(gameId, game);
             return (true, $"{request.ArmyCount} ejércitos movidos de {fromTerritory.Name} a {toTerritory.Name}.", game);
         }
 
