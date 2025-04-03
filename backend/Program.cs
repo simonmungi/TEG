@@ -1,3 +1,4 @@
+using backend.Hubs;
 using backend.Models; // Necesario para los modelos
 using backend.Services; // Necesario para el servicio
 using Microsoft.AspNetCore.Mvc; // Para FromBody, etc.
@@ -47,10 +48,8 @@ app.UseAuthorization();
 
 app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Player>? initialPlayers) =>
 {
-    // Validación básica de entrada
     if (initialPlayers == null || !initialPlayers.Any())
     {
-        // Crear jugadores por defecto si no se proporcionan
         initialPlayers = new List<Player>
         {
             new Player { Name = "Jugador 1", Color = "#a7c7e7" },
@@ -66,7 +65,6 @@ app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Playe
 
 
     var newGame = await gameService.CreateNewGameAsync(initialPlayers);
-    // Devolvemos la URL para obtener el juego creado y el propio juego
     return Results.Created($"/api/games/{newGame.Id}", newGame);
 })
 .WithName("CreateGame") // Nombre para Swagger
@@ -75,11 +73,39 @@ app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Playe
 app.MapGet("/api/games/{gameId}", async (Guid gameId, IGameService gameService) =>
 {
     var game = await gameService.GetGameAsync(gameId);
-    return game != null ? Results.Ok(game) : Results.NotFound(); // Devuelve 200 OK con el juego o 404 Not Found
+    return game != null ? Results.Ok(game) : Results.NotFound();
 })
 .WithName("GetGame")
 .WithTags("Game Management");
 
+// POST /api/games/{gameId}/reinforce
+app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>{
+    var (success, message, gameState) = await gameService.ReinforceAsync(gameId,request);
+    return success ? Results.Ok(new {message, gameState}) : Results.BadRequest(new {message});
+}
+).WithName("Reinforce").WithTags("Game Actions");
 
-// --- Ejecutar la aplicación ---
+// POST /api/games/{gameId}/attack
+app.MapPost("/api/games/{gameId}/attack", async (Guid gameId, [FromBody] AttackRequest request, IGameService gameService) => {
+    var result = await gameService.AttackAsync(gameId, request);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+}).WithName("Attack").WithTags("Game Actions");
+
+// POST /api/games/{gameId}/fortify
+app.MapPost("/api/games/{gameId}/fortify", async (Guid gameId, [FromBody] FortifyRequest request, IGameService gameService) => {
+    var (success, message, gameState) = await gameService.FortifyAsync(gameId, request);
+    return success ? Results.Ok(new {message, gameState}) : Results.BadRequest(new {message});
+}).WithName("Fortify").WithTags("Game Actions");
+
+ // POST /api/games/{gameId}/endturn
+app.MapPost("/api/games/{gameId}/endturn",
+    async (Guid gameId, [FromBody] PlayerActionBase request, IGameService gameService) => // Usar un modelo base o simple
+{
+     var (success, message, gameState) = await gameService.EndTurnAsync(gameId, request.PlayerId);
+     return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+})
+.WithName("EndTurn").WithTags("Game Actions");
+
+app.MapHub<GameHub>("/gamehub");
+
 app.Run();

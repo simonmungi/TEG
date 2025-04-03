@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "F:\\REPOS\\C#\\TEG\\backend\\backend.csproj": {}
+    "C:\\Users\\simon\\OneDrive\\Desktop\\repos\\TEG\\Web\\backend\\backend.csproj": {}
   },
   "projects": {
-    "F:\\REPOS\\C#\\TEG\\backend\\backend.csproj": {
+    "C:\\Users\\simon\\OneDrive\\Desktop\\repos\\TEG\\Web\\backend\\backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "F:\\REPOS\\C#\\TEG\\backend\\backend.csproj",
+        "projectUniqueName": "C:\\Users\\simon\\OneDrive\\Desktop\\repos\\TEG\\Web\\backend\\backend.csproj",
         "projectName": "backend",
-        "projectPath": "F:\\REPOS\\C#\\TEG\\backend\\backend.csproj",
-        "packagesPath": "C:\\Users\\Simón\\.nuget\\packages\\",
-        "outputPath": "F:\\REPOS\\C#\\TEG\\backend\\obj\\",
+        "projectPath": "C:\\Users\\simon\\OneDrive\\Desktop\\repos\\TEG\\Web\\backend\\backend.csproj",
+        "packagesPath": "C:\\Users\\simon\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\simon\\OneDrive\\Desktop\\repos\\TEG\\Web\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Simón\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\simon\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,6 +26,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -38,6 +39,11 @@
           "warnAsError": [
             "NU1605"
           ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
         }
       },
       "frameworks": {
@@ -72,7 +78,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.100/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.303/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
