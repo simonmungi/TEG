@@ -299,7 +299,7 @@ function App() {
     return (
       <div className="App">
         {/* Podríamos poner el ID aquí o en GameInfo */}
-        <h1>Mi Juego de Estrategia</h1>
+        <h1>TEG</h1>
         {renderApiError}
         <GameInfo /* ... props ... */
           players={game.players}
