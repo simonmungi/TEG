@@ -70,6 +70,7 @@ app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Playe
 .WithName("CreateGame") // Nombre para Swagger
 .WithTags("Game Management"); // Agrupación en Swagger
 
+// GET /api/games/{gameId} -----------------------------------------------------------------------------------------------
 app.MapGet("/api/games/{gameId}", async (Guid gameId, IGameService gameService) =>
 {
     var game = await gameService.GetGameAsync(gameId);
@@ -78,26 +79,26 @@ app.MapGet("/api/games/{gameId}", async (Guid gameId, IGameService gameService) 
 .WithName("GetGame")
 .WithTags("Game Management");
 
-// POST /api/games/{gameId}/reinforce
+// POST /api/games/{gameId}/reinforce -----------------------------------------------------------------------------------------------
 app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>{
     var (success, message, gameState) = await gameService.ReinforceAsync(gameId,request);
     return success ? Results.Ok(new {message, gameState}) : Results.BadRequest(new {message});
 }
 ).WithName("Reinforce").WithTags("Game Actions");
 
-// POST /api/games/{gameId}/attack
+// POST /api/games/{gameId}/attack-----------------------------------------------------------------------------------------------
 app.MapPost("/api/games/{gameId}/attack", async (Guid gameId, [FromBody] AttackRequest request, IGameService gameService) => {
     var result = await gameService.AttackAsync(gameId, request);
     return result.Success ? Results.Ok(result) : Results.BadRequest(result);
 }).WithName("Attack").WithTags("Game Actions");
 
-// POST /api/games/{gameId}/fortify
+// POST /api/games/{gameId}/fortify-----------------------------------------------------------------------------------------------
 app.MapPost("/api/games/{gameId}/fortify", async (Guid gameId, [FromBody] FortifyRequest request, IGameService gameService) => {
     var (success, message, gameState) = await gameService.FortifyAsync(gameId, request);
     return success ? Results.Ok(new {message, gameState}) : Results.BadRequest(new {message});
 }).WithName("Fortify").WithTags("Game Actions");
 
- // POST /api/games/{gameId}/endturn
+ // POST /api/games/{gameId}/endturn-----------------------------------------------------------------------------------------------
 app.MapPost("/api/games/{gameId}/endturn",
     async (Guid gameId, [FromBody] PlayerActionBase request, IGameService gameService) => // Usar un modelo base o simple
 {
