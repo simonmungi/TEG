@@ -40,7 +40,9 @@ namespace backend.Services
 
         public Task<Game?> GetGameAsync(Guid gameId)
         {
-            throw new NotImplementedException();
+            _activeGames.TryGetValue(gameId, out var game);
+            return Task.FromResult(game);
+
         }
 
         private void InitializeMap(Game game)

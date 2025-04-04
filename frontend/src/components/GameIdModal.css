@@ -1,0 +1,65 @@
+/* src/components/GameIdModal.css */
+.modal-overlay {
+    position: fixed; /* Se queda fijo en la pantalla */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo semi-transparente */
+    display: flex;
+    align-items: center; /* Centrado vertical */
+    justify-content: center; /* Centrado horizontal */
+    z-index: 1000; /* Asegura que esté por encima de otro contenido */
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    min-width: 300px; /* Ancho mínimo */
+    max-width: 500px; /* Ancho máximo */
+    z-index: 1001;
+    text-align: center;
+  }
+  
+  .modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .modal-content form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px; /* Espacio entre elementos del form */
+  }
+  
+  .modal-content input[type="text"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .modal-content button[type="submit"] {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .modal-content button[type="submit"]:hover {
+    background-color: #0056b3;
+  }
+  
+  .modal-error {
+      color: red;
+      font-size: 0.9em;
+      margin-top: -5px; /* Acercar al input */
+      margin-bottom: 5px;
+  }

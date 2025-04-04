@@ -1,64 +1,96 @@
 /* src/components/Map.css */
 .map-container {
-    border: 1px solid #ccc;
-    padding: 15px;
-    margin-top: 20px;
-    background-color: #f0f0f0; /* Un fondo ligero para el contenedor del mapa */
-  }
-  
-  .territories {
-    display: flex; /* Coloca los territorios en fila */
-    flex-wrap: wrap; /* Permite que pasen a la siguiente línea si no caben */
-    gap: 10px; /* Espacio entre territorios */
-  }
-  
-  .territory {
-    border: 1px solid #999;
-    padding: 10px 15px;
-    border-radius: 4px;
-    min-width: 100px; /* Ancho mínimo para que se vea bien */
-    text-align: center;
-    background-color: #e0e0e0; /* Color base para territorios */
-    cursor: pointer; /* Indica que es clickeable (aunque aún no haga nada) */
-    transition: background-color 0.2s ease; /* Suave transición al pasar el mouse */
-  }
-  
-  .territory:hover {
-    background-color: #d0d0d0;
-  }
-  
-  .territory-name {
-    display: block; /* Nombre en una línea */
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  
-  .territory-armies {
-    font-size: 0.9em;
-    color: #333;
-  }
-  
-  /* Colores básicos por jugador (puedes personalizarlos) */
-  .territory-owner-Player-1 {
-    background-color: #a7c7e7; /* Azul claro */
-    border-color: #4169e1; /* Azul más oscuro */
-  }
-  .territory-owner-Player-1:hover {
-     background-color: #8ab0d9;
-  }
-  
-  .territory-owner-Player-2 {
-    background-color: #f5cba7; /* Naranja claro */
-    border-color: #e59866; /* Naranja más oscuro */
-  }
-   .territory-owner-Player-2:hover {
-     background-color: #e8b38a;
-   }
-  
-  .territory-owner-neutral {
-    background-color: #d5dbdb; /* Gris claro */
-    border-color: #aeb6bf; /* Gris más oscuro */
-  }
-   .territory-owner-neutral:hover {
-     background-color: #c8cfcf;
-   }
+  border: 1px solid #ccc;
+  padding: 15px;
+  margin-top: 20px;
+  background-color: #f0f0f0;
+  /* Un fondo ligero para el contenedor del mapa */
+}
+
+.territories {
+  display: flex;
+  /* Coloca los territorios en fila */
+  flex-wrap: wrap;
+  /* Permite que pasen a la siguiente línea si no caben */
+  gap: 10px;
+  /* Espacio entre territorios */
+}
+
+.territory {
+  border: 1px solid #999;
+  padding: 10px 15px;
+  border-radius: 4px;
+  min-width: 100px;
+  /* Ancho mínimo para que se vea bien */
+  text-align: center;
+  background-color: #e0e0e0;
+  /* Color base para territorios */
+  cursor: pointer;
+  /* Indica que es clickeable (aunque aún no haga nada) */
+  transition: background-color 0.2s ease;
+  /* Suave transición al pasar el mouse */
+}
+
+.territory:hover {
+  background-color: #d0d0d0;
+}
+
+.territory-name {
+  display: block;
+  /* Nombre en una línea */
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.territory-armies {
+  font-size: 0.9em;
+  color: #333;
+}
+
+/* Colores básicos por jugador (puedes personalizarlos) */
+.territory-owner-Player-1 {
+  background-color: #a7c7e7;
+  /* Azul claro */
+  border-color: #4169e1;
+  /* Azul más oscuro */
+}
+
+.territory-owner-Player-1:hover {
+  background-color: #8ab0d9;
+}
+
+.territory-owner-Player-2 {
+  background-color: #f5cba7;
+  /* Naranja claro */
+  border-color: #e59866;
+  /* Naranja más oscuro */
+}
+
+.territory-owner-Player-2:hover {
+  background-color: #e8b38a;
+}
+
+.territory-owner-neutral {
+  background-color: #d5dbdb;
+  /* Gris claro */
+  border-color: #aeb6bf;
+  /* Gris más oscuro */
+}
+
+.territory-owner-neutral:hover {
+  background-color: #c8cfcf;
+}
+
+/* src/components/Map.css */
+/* ... otros estilos ... */
+.territory.selected {
+  outline: 3px solid gold;
+  outline-offset: 2px;
+  box-shadow: 0 0 10px gold;
+}
+
+.territory.target {
+  outline: 3px solid red;
+  outline-offset: 2px;
+  box-shadow: 0 0 10px red;
+}

@@ -1,0 +1,9 @@
+/* src/App.css */
+.api-error {
+    color: red;
+    background-color: #ffe0e0;
+    border: 1px solid red;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
