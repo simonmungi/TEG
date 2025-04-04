@@ -30,6 +30,7 @@ function GameIdModal({ isOpen, onSubmit }) {
   }
 
   return (
+    
     <div className="modal-overlay">
       <div className="modal-content">
         <h2>Ingresar ID de Partida Existente</h2>

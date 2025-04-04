@@ -3,6 +3,8 @@
   border: 1px solid #ccc;
   padding: 15px;
   margin-top: 20px;
+  margin-bottom: 20px;
+
   background-color: #f0f0f0;
   /* Un fondo ligero para el contenedor del mapa */
 }

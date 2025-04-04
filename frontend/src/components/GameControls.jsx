@@ -1,19 +1,21 @@
 // src/components/GameControls.jsx
 import React, { useState, useEffect } from 'react';
 import './GameControls.css';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 
 function GameControls({
     gamePhase,
     selectedTerritory,
     targetTerritory,
-    currentPlayerId, // Quién SOY YO (temporalmente hardcodeado en App.jsx)
+    currentPlayerId,
     gamePlayerId,  // De quién ES el turno según el juego
     onReinforce,
     onAttack,
     onFortify,
     onEndTurn,
     onCancel
- }) {
+}) {
     const [armyCount, setArmyCount] = useState(1); // Para inputs de cantidad
     const isMyTurn = currentPlayerId === gamePlayerId;
 
@@ -29,7 +31,7 @@ function GameControls({
 
     const renderReinforceControls = () => {
         if (gamePhase !== 'Reinforcement' || !selectedTerritory) return null;
-         // TODO: Validar cuántos refuerzos tiene realmente el jugador
+        // TODO: Validar cuántos refuerzos tiene realmente el jugador
         return (
             <div>
                 <h4>Reforzar {selectedTerritory.name}</h4>
@@ -38,7 +40,7 @@ function GameControls({
                     value={armyCount}
                     onChange={(e) => setArmyCount(Math.max(1, parseInt(e.target.value) || 1))}
                     min="1"
-                    // max={availableReinforcements} // Añadir cuando se calcule
+                // max={availableReinforcements} // Añadir cuando se calcule
                 />
                 <button onClick={() => onReinforce(armyCount)} disabled={armyCount <= 0}>Reforzar</button>
                 <button onClick={onCancel}>Cancelar</button>
@@ -51,14 +53,14 @@ function GameControls({
         const maxAttackers = selectedTerritory.armies - 1;
         if (maxAttackers <= 0) return <p>No tienes suficientes ejércitos para atacar desde {selectedTerritory.name}.</p>;
 
-         // Ajustar el valor si excede el máximo permitido
-         const currentArmyCount = Math.min(armyCount, maxAttackers);
+        // Ajustar el valor si excede el máximo permitido
+        const currentArmyCount = Math.min(armyCount, maxAttackers);
 
 
         return (
             <div>
                 <h4>Atacar {targetTerritory.name} desde {selectedTerritory.name}</h4>
-                 <label>Ejércitos a usar (máx: {maxAttackers}): </label>
+                <label>Ejércitos a usar (máx: {maxAttackers}): </label>
                 <input
                     type="number"
                     value={currentArmyCount}
@@ -67,36 +69,36 @@ function GameControls({
                     max={maxAttackers}
                 />
                 <button onClick={() => onAttack(currentArmyCount)} disabled={currentArmyCount <= 0}>¡Atacar!</button>
-                 <button onClick={onCancel}>Cancelar</button>
+                <button onClick={onCancel}>Cancelar</button>
             </div>
         );
     };
 
-     const renderFortifyControls = () => {
-         if (gamePhase !== 'Fortification' || !selectedTerritory || !targetTerritory) return null;
-         const maxToMove = selectedTerritory.armies - 1;
-          if (maxToMove <= 0) return <p>No tienes suficientes ejércitos para mover desde {selectedTerritory.name}.</p>;
+    const renderFortifyControls = () => {
+        if (gamePhase !== 'Fortification' || !selectedTerritory || !targetTerritory) return null;
+        const maxToMove = selectedTerritory.armies - 1;
+        if (maxToMove <= 0) return <p>No tienes suficientes ejércitos para mover desde {selectedTerritory.name}.</p>;
 
-         // Ajustar el valor si excede el máximo permitido
-         const currentArmyCount = Math.min(armyCount, maxToMove);
+        // Ajustar el valor si excede el máximo permitido
+        const currentArmyCount = Math.min(armyCount, maxToMove);
 
 
-         return (
-             <div>
-                 <h4>Fortificar: Mover de {selectedTerritory.name} a {targetTerritory.name}</h4>
-                 <label>Ejércitos a mover (máx: {maxToMove}): </label>
-                 <input
-                     type="number"
-                     value={currentArmyCount}
-                     onChange={(e) => setArmyCount(Math.max(1, Math.min(maxToMove, parseInt(e.target.value) || 1)))}
-                     min="1"
-                     max={maxToMove}
-                 />
-                 <button onClick={() => onFortify(currentArmyCount)} disabled={currentArmyCount <= 0}>Mover Ejércitos</button>
-                  <button onClick={onCancel}>Cancelar</button>
-             </div>
-         );
-     };
+        return (
+            <div>
+                <h4>Fortificar: Mover de {selectedTerritory.name} a {targetTerritory.name}</h4>
+                <label>Ejércitos a mover (máx: {maxToMove}): </label>
+                <input
+                    type="number"
+                    value={currentArmyCount}
+                    onChange={(e) => setArmyCount(Math.max(1, Math.min(maxToMove, parseInt(e.target.value) || 1)))}
+                    min="1"
+                    max={maxToMove}
+                />
+                <button onClick={() => onFortify(currentArmyCount)} disabled={currentArmyCount <= 0}>Mover Ejércitos</button>
+                <button onClick={onCancel}>Cancelar</button>
+            </div>
+        );
+    };
 
 
     return (
@@ -108,10 +110,11 @@ function GameControls({
 
             {/* Botón para terminar fase/turno */}
             {gamePhase === 'Attack' && (!selectedTerritory || !targetTerritory) && <button onClick={onEndTurn}>Terminar Fase de Ataque</button>}
-            {gamePhase === 'Fortification' && (!selectedTerritory || !targetTerritory) &&<button onClick={onEndTurn}>Terminar Turno</button>}
+            {gamePhase === 'Fortification' && (!selectedTerritory || !targetTerritory) && <button onClick={onEndTurn}>Terminar Turno</button>}
             {/* Podrías tener botones explícitos para cambiar de fase */}
 
         </div>
+
     );
 }
 // Añade estilos básicos en GameControls.css

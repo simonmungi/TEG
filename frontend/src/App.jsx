@@ -6,6 +6,8 @@ import GameControls from './components/GameControls'; // Crearemos este componen
 import GameInfo from './components/GameInfo'; // Crearemos este componente
 import GameIdModal from './components/GameIdModal';
 import './App.css';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5011';
 
@@ -20,7 +22,7 @@ function App() {
 
   // --- TEMP: Para pruebas iniciales ---
   // const tempFixedGameId = "dbee70e4-fb04-441c-9e5b-b14edfa6336f"; 
-  const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id; 
+  const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id;
 
   //  useEffect(() => {
   //     if (!gameId) {
@@ -300,34 +302,52 @@ function App() {
       <div className="App">
         {/* Podríamos poner el ID aquí o en GameInfo */}
         <h1>TEG</h1>
-        {renderApiError}
-        <GameInfo /* ... props ... */
-          players={game.players}
-          currentPlayerId={game.currentPlayerId}
-          currentPhase={game.currentPhase}
-          gameId={gameId} // Pasar ID si se quiere mostrar
-        />
-        <Map /* ... props ... */
-          territories={territoriesArray}
-          onTerritoryClick={handleTerritoryClick}
-          selectedTerritoryId={selectedTerritoryId}
-          targetTerritoryId={targetTerritoryId}
-          players={game.players}
-        />
-        <GameControls /* ... props ... */
-          gamePhase={game.currentPhase}
-          selectedTerritory={game.territories[selectedTerritoryId]}
-          targetTerritory={game.territories[targetTerritoryId]}
-          currentPlayerId={currentPlayerId}
-          gamePlayerId={game.currentPlayerId}
-          onReinforce={handleReinforce}
-          onAttack={handleAttack}
-          onFortify={handleFortify}
-          onEndTurn={handleEndTurn}
-          onCancel={() => { setSelectedTerritoryId(null); setTargetTerritoryId(null); }}
-        />
-        {/* Opcional: Mostrar estado de la conexión SignalR */}
-        <div className="signalr-status">SignalR: {connection?.state || 'Disconnected'}</div>
+        <div className="space-y-4">
+          {renderApiError}
+          <Card>
+            <CardContent>
+              <GameInfo /* ... props ... */
+                players={game.players}
+                currentPlayerId={game.currentPlayerId}
+                currentPhase={game.currentPhase}
+                gameId={gameId} // Pasar ID si se quiere mostrar
+              />
+            </CardContent>
+
+          </Card>
+
+
+          <Map /* ... props ... */
+            territories={territoriesArray}
+            onTerritoryClick={handleTerritoryClick}
+            selectedTerritoryId={selectedTerritoryId}
+            targetTerritoryId={targetTerritoryId}
+            players={game.players}
+          />
+
+          <Card>
+            <CardContent>
+              <GameControls /* ... props ... */
+                gamePhase={game.currentPhase}
+                selectedTerritory={game.territories[selectedTerritoryId]}
+                targetTerritory={game.territories[targetTerritoryId]}
+                currentPlayerId={currentPlayerId}
+                gamePlayerId={game.currentPlayerId}
+                onReinforce={handleReinforce}
+                onAttack={handleAttack}
+                onFortify={handleFortify}
+                onEndTurn={handleEndTurn}
+                onCancel={() => { setSelectedTerritoryId(null); setTargetTerritoryId(null); }}
+              />
+            </CardContent>
+          </Card>
+
+          <div className="signalr-status" style={{ marginTop: '20px' }}>
+            SignalR: {connection?.state || 'Disconnected'}
+          </div>
+
+        </div>
+
       </div>
     );
   }

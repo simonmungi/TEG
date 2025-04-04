@@ -15,6 +15,7 @@ function Map({ territories, onTerritoryClick, selectedTerritoryId, targetTerrito
   }
 
   return (
+    
     <div className="map-container">
       <h2>Mapa del Juego</h2>
       <div className="territories">
@@ -33,7 +34,6 @@ function Map({ territories, onTerritoryClick, selectedTerritoryId, targetTerrito
              backgroundColor: ownerColor,
              border: isSelected ? '3px solid yellow' : (isTarget ? '3px solid red' : `1px solid #555`),
           };
-
 
           return (
             <div
