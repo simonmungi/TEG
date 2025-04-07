@@ -300,54 +300,20 @@ function App() {
 
     return (
       <div className="App">
-        {/* Podríamos poner el ID aquí o en GameInfo */}
         <h1>TEG</h1>
         <div className="space-y-4">
           {renderApiError}
-          <Card>
-            <CardContent>
-              <GameInfo /* ... props ... */
-                players={game.players}
-                currentPlayerId={game.currentPlayerId}
-                currentPhase={game.currentPhase}
-                gameId={gameId} // Pasar ID si se quiere mostrar
-              />
-            </CardContent>
-
-          </Card>
-
-
-          <Map /* ... props ... */
+        </div>
+        <Map /* ... props ... */
             territories={territoriesArray}
             onTerritoryClick={handleTerritoryClick}
             selectedTerritoryId={selectedTerritoryId}
             targetTerritoryId={targetTerritoryId}
             players={game.players}
           />
-
-          <Card>
-            <CardContent>
-              <GameControls /* ... props ... */
-                gamePhase={game.currentPhase}
-                selectedTerritory={game.territories[selectedTerritoryId]}
-                targetTerritory={game.territories[targetTerritoryId]}
-                currentPlayerId={currentPlayerId}
-                gamePlayerId={game.currentPlayerId}
-                onReinforce={handleReinforce}
-                onAttack={handleAttack}
-                onFortify={handleFortify}
-                onEndTurn={handleEndTurn}
-                onCancel={() => { setSelectedTerritoryId(null); setTargetTerritoryId(null); }}
-              />
-            </CardContent>
-          </Card>
-
-          <div className="signalr-status" style={{ marginTop: '20px' }}>
+        <div className="signalr-status" style={{ marginTop: '20px' }}>
             SignalR: {connection?.state || 'Disconnected'}
           </div>
-
-        </div>
-
       </div>
     );
   }
