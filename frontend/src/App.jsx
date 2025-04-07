@@ -24,14 +24,6 @@ function App() {
   // const tempFixedGameId = "dbee70e4-fb04-441c-9e5b-b14edfa6336f"; 
   const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id;
 
-  //  useEffect(() => {
-  //     if (!gameId) {
-  //        setGameId(tempFixedGameId);
-  //     }
-  //  }, [gameId, tempFixedGameId]);
-  // --- FIN TEMP ---
-
-
   // --- Efecto para obtener el estado inicial del juego ---
   useEffect(() => {
     if (!gameId) return; // No hacer nada si no hay ID de juego
