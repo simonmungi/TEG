@@ -69,7 +69,7 @@ function Map({
       if (containerRef.current) {
         setStageSize({
           width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeigth
+          height: containerRef.current.offsetHeight
         });
       }
     };
