@@ -90,27 +90,26 @@ function App() {
   }, [gameId]); // Se ejecuta cuando gameId cambia
 
 
-  useEffect(() => {
-    const manejarTecla = (e) => {
-      if (e.key.toLowerCase() === 'c') {
-        console.log('Tecla "c" presionada');
-        setArrayConexiones([]);
-      }
-    };
+  // useEffect(() => {
+  //   const manejarTecla = (e) => {
+  //     if (e.key.toLowerCase() === 'c') {
+  //       console.log('Tecla "c" presionada');
+  //       setArrayConexiones([]);
+  //     }
+  //   };
 
-    document.addEventListener('keydown', manejarTecla);
+  //   document.addEventListener('keydown', manejarTecla);
 
-    return () => {
-      document.removeEventListener('keydown', manejarTecla);
-    };
-  }, []);
+  //   return () => {
+  //     document.removeEventListener('keydown', manejarTecla);
+  //   };
+  // }, []);
 
 
   const handleModalSubmit = (enteredId) => {
     console.log("Modal submitted Game ID: ", enteredId);
     setGameId(enteredId);
   }
-
 
   // --- Manejadores de Acciones ---
 
@@ -188,7 +187,6 @@ function App() {
         break;
     }
   }, [game, currentPlayerId, selectedTerritoryId]); // Dependencias del callback
-
 
   // --- Funciones para llamar a la API (ejemplos) ---
 
@@ -280,7 +278,6 @@ function App() {
     setSelectedTerritoryId(null);
     setTargetTerritoryId(null);
   };
-
 
   // --- Renderizado ---
 
