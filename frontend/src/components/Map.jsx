@@ -9,37 +9,6 @@ const getPlayerColor = (playerId, players) => {
   return player ? player.color : '#CCCCCC'; // Gris por defecto (neutral)
 };
 
-function extractPointsFromPath(d) {
-  // Extrae todos los números del string (soporta floats)
-  const regex = /-?\d*\.?\d+/g;
-  const numbers = d.match(regex).map(Number);
-
-  // Agrupa en pares (x, y)
-  const points = [];
-  for (let i = 0; i < numbers.length - 1; i += 2) {
-    points.push([numbers[i], numbers[i + 1]]);
-  }
-
-  return points;
-}
-
-function calculateCentroid(points) {
-  if (points.length === 0) return null;
-
-  let sumX = 0;
-  let sumY = 0;
-
-  points.forEach(([x, y]) => {
-    sumX += x;
-    sumY += y;
-  });
-
-  return {
-    x: sumX / points.length,
-    y: sumY / points.length
-  };
-}
-
 function Map({
   territories = [],
   players = [],
@@ -110,7 +79,6 @@ function Map({
     window.addEventListener('resize', checkSize);
     return () => window.removeEventListener('resize', checkSize);
   }, []);
-
 
   // --- Manejador de Zoom (Rueda del Ratón) ---
   const handleWheel = (e) => {
@@ -189,9 +157,6 @@ function Map({
             const isTarget = territory.id === targetTerritoryId;
             const ownerColor = getPlayerColor(territory.ownerPlayerId, players);
 
-            // const points = extractPointsFromPath(territory.pathData);
-            // const centroid = calculateCentroid(points);
-
             return (
               <React.Fragment key={territory.id}>
                 {/* Dibuja la forma del territorio */}
@@ -201,9 +166,9 @@ function Map({
                   stroke={isSelected ? 'yellow' : (isTarget ? 'red' : 'black')} // Borde según selección/target
                   strokeWidth={isSelected || isTarget ? 3 : 1}
                   opacity={0.9}
-                  shadowColor="black"
-                  shadowBlur={isSelected || isTarget ? 10 : 3}
-                  shadowOpacity={0.5}
+                  // shadowColor="black"
+                  // shadowBlur={isSelected || isTarget ? 10 : 3}
+                  // shadowOpacity={0.5}
                   onClick={() => onTerritoryClick(territory.id)} // Evento de clic
                   onTap={() => onTerritoryClick(territory.id)} // Para móvil
                   onMouseEnter={e => {
