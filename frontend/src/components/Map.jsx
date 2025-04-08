@@ -1,6 +1,6 @@
 // src/components/Map.jsx
 import React, { useRef, useEffect, useState } from 'react';
-import { Stage, Layer, Path, Text } from 'react-konva';
+import { Stage, Layer, Path, Text, Label, Tag } from 'react-konva';
 import './Map.css';
 import { Height } from '@mui/icons-material';
 
@@ -59,6 +59,13 @@ function Map({
   const [stageSize, setStageSize] = useState({ width: 1024, height: 500 });
   const containerRef = useRef(null); //Ref para el div contenedor
 
+  const [tooltip, setTooltip] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    text: ''
+  });
+
   useEffect(() => {
     const checkSize = () => {
       if (containerRef.current) {
@@ -77,7 +84,6 @@ function Map({
 
   const displayTerritories = territories && Object.keys(territories).length > 0 ? territories : placeholderTerritories;
   const territoriesArray = Array.isArray(displayTerritories) ? displayTerritories : Object.values(displayTerritories);
-  console.log("STAGE SIZE:", stageSize);
   return (
     // Contenedor para medir el tamaño disponible
     <div ref={containerRef} style={{ width: '100%', height: '100%', border: '1px solid red', position: 'relative' }}>
@@ -117,12 +123,20 @@ function Map({
                     if (stage) stage.container().style.cursor = 'pointer';
                     e.target.opacity(1); // Resaltar al pasar el mouse
                     // Podrías también usar onMouseOver/onMouseOut para mostrar un tooltip
+                    const mousePos = stage.getPointerPosition();
+                    setTooltip({
+                      visible: true,
+                      x: mousePos.x,
+                      y: mousePos.y,
+                      text: `ID: ${territory.id}`
+                    });
                   }}
                   onMouseLeave={e => {
                     // Restaurar cursor y opacidad
                     const stage = e.target.getStage();
                     if (stage) stage.container().style.cursor = 'default';
                     e.target.opacity(0.9);
+                    setTooltip({ ...tooltip, visible: false });
                   }}
                 />
                 {/* Dibuja el número de ejércitos */}
@@ -138,6 +152,26 @@ function Map({
                   verticalAlign="middle"
                   listening={false} // Para que no interfiera con el clic en el Path
                 /> */}
+                {tooltip.visible && (
+                  <Label x={tooltip.x + 10} y={tooltip.y + 10}>
+                    <Tag
+                      fill="black"
+                      pointerDirection="down"
+                      pointerWidth={10}
+                      pointerHeight={10}
+                      lineJoin="round"
+                      cornerRadius={5}
+
+                    />
+                    <Text
+                      text={tooltip.text}
+                      fontFamily="Calibri"
+                      fontSize={16}
+                      padding={5}
+                      fill="white"
+                    />
+                  </Label>
+                )}
               </React.Fragment>
             );
           })}

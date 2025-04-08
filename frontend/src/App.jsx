@@ -6,8 +6,6 @@ import GameControls from './components/GameControls'; // Crearemos este componen
 import GameInfo from './components/GameInfo'; // Crearemos este componente
 import GameIdModal from './components/GameIdModal';
 import './App.css';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5011';
 
@@ -19,9 +17,8 @@ function App() {
   const [error, setError] = useState(null);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState(null); // Territorio origen seleccionado
   const [targetTerritoryId, setTargetTerritoryId] = useState(null);   // Territorio destino seleccionado
+  const [arrayConexiones, setArrayConexiones] = useState([]);
 
-  // --- TEMP: Para pruebas iniciales ---
-  // const tempFixedGameId = "dbee70e4-fb04-441c-9e5b-b14edfa6336f"; 
   const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id;
 
   // --- Efecto para obtener el estado inicial del juego ---
@@ -92,6 +89,23 @@ function App() {
     };
   }, [gameId]); // Se ejecuta cuando gameId cambia
 
+
+  useEffect(() => {
+    const manejarTecla = (e) => {
+      if (e.key.toLowerCase() === 'c') {
+        console.log('Tecla "c" presionada');
+        setArrayConexiones([]);
+      }
+    };
+
+    document.addEventListener('keydown', manejarTecla);
+
+    return () => {
+      document.removeEventListener('keydown', manejarTecla);
+    };
+  }, []);
+
+
   const handleModalSubmit = (enteredId) => {
     console.log("Modal submitted Game ID: ", enteredId);
     setGameId(enteredId);
@@ -99,6 +113,10 @@ function App() {
 
 
   // --- Manejadores de Acciones ---
+
+  useEffect(() => {
+    console.log(`{${arrayConexiones.map(id => `"${id}"`).join(', ')}}`);
+  }, [arrayConexiones]);
 
   const handleTerritoryClick = useCallback((territoryId) => {
     if (!game || game.currentPlayerId !== currentPlayerId) {
@@ -109,8 +127,9 @@ function App() {
     const territory = game.territories[territoryId];
     if (!territory) return;
 
-    console.log(`Clicked on territory: ${territory.name} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
+    console.log(`Clicked on territory: ${territory.name} ID: ${territory.id} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
 
+    setArrayConexiones(prev => [...prev, territory.id]);
 
     // Lógica de selección según la fase del juego
     switch (game.currentPhase) {
@@ -297,15 +316,15 @@ function App() {
           {renderApiError}
         </div>
         <Map /* ... props ... */
-            territories={territoriesArray}
-            onTerritoryClick={handleTerritoryClick}
-            selectedTerritoryId={selectedTerritoryId}
-            targetTerritoryId={targetTerritoryId}
-            players={game.players}
-          />
+          territories={territoriesArray}
+          onTerritoryClick={handleTerritoryClick}
+          selectedTerritoryId={selectedTerritoryId}
+          targetTerritoryId={targetTerritoryId}
+          players={game.players}
+        />
         <div className="signalr-status" style={{ marginTop: '20px' }}>
-            SignalR: {connection?.state || 'Disconnected'}
-          </div>
+          SignalR: {connection?.state || 'Disconnected'}
+        </div>
       </div>
     );
   }

@@ -6,7 +6,7 @@ namespace backend.Models{
         public string Name { get; set; }="";
         public string? OwnerPlayerId { get; set; }
         public int Armies { get; set; }
-        public List<string> AdjacentTerritoriesIds { get; set; } = new List<string>();
+        public List<string>? AdjacentTerritoriesIds { get; set; } = new List<string>();
         public string PathData { get; set; } = "";
     }
 }
