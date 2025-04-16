@@ -1,12 +1,11 @@
 // src/components/Map.jsx
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Stage, Layer, Path, Text, Label, Tag } from 'react-konva';
+import { Stage, Layer, Path, Text, Rect, Group, Circle } from 'react-konva';
 import './Map.css';
 
-// Función auxiliar para obtener color (o definirlo en App.jsx y pasarlo)
 const getPlayerColor = (playerId, players) => {
   const player = players.find(p => p.id === playerId);
-  return player ? player.color : '#CCCCCC'; // Gris por defecto (neutral)
+  return player ? player.color : '#CCCCCC';
 };
 
 function Map({
@@ -18,22 +17,21 @@ function Map({
 }) {
   const containerRef = useRef(null);
   const [stageSize, setStageSize] = useState({ width: 1024, height: 800 });
-  const [stagePos, setStagePos] = useState({ x: 0, y: 0 }); // Estado para posición del Stage
-  const [stageScale, setStageScale] = useState(1);       // Estado para escala del Stage
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [stageScale, setStageScale] = useState(1.3);
 
   const mapBounds = useMemo(() => {
-      // Idealmente, calcula esto a partir de 'territories'
-      const minX = 20;
-      const minY = 30;
-      const maxX = stageSize.width;
-      const maxY = stageSize.height;
-      return {
-          minX: minX,
-          minY: minY,
-          width: maxX - minX,
-          height: maxY - minY,
-      };
-  }, []); // Recalcular solo si 'territories' cambiara (si lo pones como dependencia)
+    const minX = 20;
+    const minY = 30;
+    const maxX = stageSize.width;
+    const maxY = stageSize.height;
+    return {
+      minX: minX,
+      minY: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }, []);
 
   useEffect(() => {
     const checkSizeAndSetView = () => {
@@ -42,14 +40,11 @@ function Map({
         const newHeight = containerRef.current.offsetHeight;
         setStageSize({ width: newWidth, height: newHeight });
 
-        // Calcular escala inicial para ajustar el mapa al contenedor
         const scaleX = newWidth / mapBounds.width;
         const scaleY = newHeight / mapBounds.height;
-       // const initialScale = Math.min(scaleX, scaleY) * 0.95; // Ajustar para un pequeño margen (0.95)
-        const initialScale = Math.min(scaleX, scaleY); // Ajustar para un pequeño margen (0.95)
+        const initialScale = Math.min(scaleX, scaleY);
         setStageScale(initialScale);
 
-        // Calcular posición para centrar el mapa escalado
         const initialX = (newWidth - mapBounds.width * initialScale) / 2 - mapBounds.minX * initialScale;
         const initialY = (newHeight - mapBounds.height * initialScale) / 2 - mapBounds.minY * initialScale;
         setStagePos({ x: initialX, y: initialY });
@@ -80,11 +75,10 @@ function Map({
     return () => window.removeEventListener('resize', checkSize);
   }, []);
 
-  // --- Manejador de Zoom (Rueda del Ratón) ---
   const handleWheel = (e) => {
     e.evt.preventDefault(); // Prevenir scroll de la página
 
-    const scaleBy = 1.1; // Factor de zoom
+    const scaleBy = 1.1;
     const stage = e.target.getStage();
     if (!stage) return;
 
@@ -99,29 +93,26 @@ function Map({
     };
 
     // Determinar nueva escala (zoom in o out)
-    let direction = e.evt.deltaY > 0 ? -1 : 1; // -1 zoom out, 1 zoom in
+    let direction = e.evt.deltaY > 0 ? -1 : 1;
 
-    // Aplicar límites de zoom (opcional)
-    const minScale = 1;
+    // Aplicar límites de zoom
+    const minScale = 1.3;
     const maxScale = 5.0;
 
     let newScale;
-    if (direction > 0) { // Zoom In
+    if (direction > 0) {
       newScale = oldScale * scaleBy;
-    } else { // Zoom Out
+    } else {
       newScale = oldScale / scaleBy;
     }
 
-    // Aplicar límites
     newScale = Math.max(minScale, Math.min(maxScale, newScale));
 
-    // Si la escala no cambió (por los límites), no hacer nada más
     if (newScale === oldScale) {
       return;
     }
     setStageScale(newScale);
 
-    // Calcular nueva posición para que el punto bajo el ratón se mantenga
     const newPos = {
       x: pointer.x - mousePointTo.x * newScale,
       y: pointer.y - mousePointTo.y * newScale,
@@ -129,10 +120,51 @@ function Map({
     setStagePos(newPos);
   };
 
+  const calculateCenter = (territory) => {
+    // Extrae todos los números (positivos y negativos, enteros o decimales) del string.
+    const regex = /-?\d+\.?\d*/g;
+    const matches = territory.pathData.match(regex);
+
+    // Verifica que se encontraron al menos dos números (x e y).
+    if (!matches || matches.length < 2) {
+      return { x: 0, y: 0 };
+    }
+
+    // Convierte la lista de números (en formato string) a números y agrúpalos en puntos.
+    const points = [];
+    for (let i = 0; i < matches.length; i += 2) {
+      const x = parseFloat(matches[i]);
+      const y = parseFloat(matches[i + 1]);
+      if (!isNaN(x) && !isNaN(y)) {
+        points.push({ x, y });
+      }
+    }
+
+    // Calcula la media aritmética de las coordenadas para obtener el centro.
+    const center = points.reduce(
+      (acc, point) => {
+        acc.x += point.x;
+        acc.y += point.y;
+        return acc;
+      },
+      { x: 0, y: 0 }
+    );
+
+    center.x /= points.length;
+    center.y /= points.length;
+
+    return center;
+  };
+
+
+  const armyCounterRadius = 12;
+  const armyFontSize = 10;
+  const nameFontSize = 10; 
+  const labelPadding = 3;
+
   const displayTerritories = territories && Object.keys(territories).length > 0 ? territories : placeholderTerritories;
   const territoriesArray = Array.isArray(displayTerritories) ? displayTerritories : Object.values(displayTerritories);
   return (
-    // Contenedor para medir el tamaño disponible
     <div ref={containerRef} style={{ width: '100%', height: '100%', border: '1px solid red', position: 'relative' }}>
       <Stage
         width={stageSize.width}
@@ -143,11 +175,13 @@ function Map({
         x={stagePos.x}
         y={stagePos.y}
         draggable={true}
-
       >
         <Layer>
 
           {territoriesArray.map((territory) => {
+
+            let center = calculateCenter(territory);
+
             if (!territory.pathData) {
               console.warn(`Territorio ${territory.id} no tiene pathData.`);
               return null;
@@ -162,30 +196,67 @@ function Map({
                 {/* Dibuja la forma del territorio */}
                 <Path
                   data={territory.pathData}
-                  fill={ownerColor}
-                  stroke={isSelected ? 'yellow' : (isTarget ? 'red' : 'black')} // Borde según selección/target
+                  fill={territory.clickable ? ownerColor : 'grey'}
+                  stroke={isSelected ? 'yellow' : (isTarget ? 'red' : 'black')}
                   strokeWidth={isSelected || isTarget ? 3 : 1}
                   opacity={0.9}
-                  // shadowColor="black"
-                  // shadowBlur={isSelected || isTarget ? 10 : 3}
-                  // shadowOpacity={0.5}
-                  onClick={() => onTerritoryClick(territory.id)} // Evento de clic
-                  onTap={() => onTerritoryClick(territory.id)} // Para móvil
+                  onClick={() => onTerritoryClick(territory.id)}
+                  onTap={() => onTerritoryClick(territory.id)}
                   onMouseEnter={e => {
-                    // Cambiar cursor y opcionalmente resaltar
+                    if (!territory.clickable) return;
                     const stage = e.target.getStage();
                     if (stage) stage.container().style.cursor = 'pointer';
-                    e.target.opacity(1); // Resaltar al pasar el mouse
-                    // Podrías también usar onMouseOver/onMouseOut para mostrar un tooltip
+                    e.target.opacity(1);
+                    e.target.fill('red');
                   }}
                   onMouseLeave={e => {
-                    // Restaurar cursor y opacidad
+                    if (!territory.clickable) return;
                     const stage = e.target.getStage();
                     if (stage) stage.container().style.cursor = 'default';
                     e.target.opacity(0.9);
+                    e.target.fill(ownerColor);
+
                   }}
                 />
-                {/* Dibuja el número de ejércitos */}
+                {/* --- Grupo para el Contador de Ejércitos --- */}
+                {territory.clickable && <Group
+                  x={center.x}
+                  y={center.y}
+                  listening={false}
+                >
+                  {/* Círculo de fondo */}
+                  <Circle
+                    radius={armyCounterRadius / stageScale}
+                    fill={"black"}
+                    opacity={1}
+                    stroke="#FFF"
+                    strokeWidth={1 / stageScale}
+                  />
+
+                  {/* Texto con el número de ejércitos */}
+                  <Text
+                    text={territory.armies.toString()}
+                    fontSize={armyFontSize / stageScale} // Ajusta tamaño de fuente con zoom
+                    fill="white"
+                    align="center"
+                    verticalAlign="middle"
+
+                    x={-armyCounterRadius / stageScale}
+                    y={-armyCounterRadius / stageScale} 
+                    width={armyCounterRadius * 2 / stageScale} 
+                    height={armyCounterRadius * 2 / stageScale} 
+                  />
+
+                  {/* <Text
+                    text={territory.name} 
+                    fontSize={nameFontSize / stageScale}
+                    fill="black"
+                    align="center"
+                    y={(armyCounterRadius / stageScale) + (labelPadding / stageScale)}
+                    width={territory.name.length * (nameFontSize / stageScale) * 0.6}
+                    offsetX={(territory.name.length * (nameFontSize / stageScale) * 0.6) / 2}
+                  /> */}
+                </Group>}
               </React.Fragment>
             );
           })}

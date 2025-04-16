@@ -23,7 +23,7 @@ function App() {
 
   // --- Efecto para obtener el estado inicial del juego ---
   useEffect(() => {
-    if (!gameId) return; // No hacer nada si no hay ID de juego
+    if (!gameId) return;
 
     const fetchGame = async () => {
       setIsLoading(true);
@@ -49,7 +49,6 @@ function App() {
 
     fetchGame();
   }, [gameId]); // Se ejecuta cuando gameId cambia
-
 
   // --- Efecto para la conexión SignalR ---
   useEffect(() => {
@@ -120,17 +119,14 @@ function App() {
   const handleTerritoryClick = useCallback((territoryId) => {
     if (!game || game.currentPlayerId !== currentPlayerId) {
       console.log("Not your turn or no game loaded.");
-      return; // No es tu turno o no hay juego
+      return;
     }
 
     const territory = game.territories[territoryId];
     if (!territory) return;
 
     console.log(`Clicked on territory: ${territory.name} ID: ${territory.id} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
-
-    setArrayConexiones(prev => [...prev, territory.id]);
-
-    // Lógica de selección según la fase del juego
+    console.log("Game Phase: "+game.currentPhase);
     switch (game.currentPhase) {
       case 'Reinforcement':
         if (territory.ownerPlayerId === currentPlayerId) {
@@ -149,7 +145,6 @@ function App() {
           setTargetTerritoryId(null);
           console.log(`Selected ${territory.name} as attack origin.`);
         } else if (selectedTerritoryId !== null && territory.ownerPlayerId !== currentPlayerId) {
-          // Validar adyacencia (debería hacerse en backend, pero útil en frontend también)
           if (game.territories[selectedTerritoryId]?.adjacentTerritoryIds.includes(territoryId)) {
             setTargetTerritoryId(territoryId); // Selecciona destino del ataque
             console.log(`Selected ${territory.name} as attack target.`);
@@ -167,12 +162,11 @@ function App() {
 
       case 'Fortification':
         if (selectedTerritoryId === null && territory.ownerPlayerId === currentPlayerId && territory.armies > 1) {
-          setSelectedTerritoryId(territoryId); // Selecciona origen de fortificación
+          setSelectedTerritoryId(territoryId);
           setTargetTerritoryId(null);
           console.log(`Selected ${territory.name} as fortify origin.`);
         } else if (selectedTerritoryId !== null && territory.ownerPlayerId === currentPlayerId && territoryId !== selectedTerritoryId) {
-          // Nota: La validación de conexión es compleja en frontend, confiar en backend por ahora
-          setTargetTerritoryId(territoryId); // Selecciona destino de fortificación
+          setTargetTerritoryId(territoryId);
           console.log(`Selected ${territory.name} as fortify target.`);
         } else {
           setSelectedTerritoryId(null);
@@ -191,7 +185,7 @@ function App() {
   // --- Funciones para llamar a la API (ejemplos) ---
 
   const executeApiCall = async (endpoint, method, body) => {
-    setError(null); // Limpiar errores previos
+    setError(null);
     try {
       console.log(`Calling API: ${method} ${endpoint}`, body);
       const urlToFetch = `${API_BASE_URL}/${endpoint}`;
@@ -210,7 +204,6 @@ function App() {
         throw new Error(errorData.message || errorData.title || `Error: ${response.statusText}`);
       }
 
-      // No necesitamos procesar la respuesta aquí si confiamos en SignalR
       // const result = await response.json();
       console.log(`API Call ${method} ${endpoint} successful.`);
       // La actualización del estado 'game' vendrá por SignalR ("GameStateUpdated")
@@ -221,7 +214,6 @@ function App() {
       setError(err.message || "An unknown error occurred.");
       return false;
     } finally {
-      // setIsLoading(false); // Quitar si la UI se actualiza por SignalR
       setSelectedTerritoryId(null);
       setTargetTerritoryId(null);
     }
@@ -292,19 +284,16 @@ function App() {
   if (error && !game) {
     return <div>Error: {error} <button onClick={() => window.location.reload()}>Retry</button></div>;
   }
-  // Mostrar error de API si ocurrió durante una acción
   const renderApiError = error && game ? <div className="api-error">Error: {error}</div> : null;
 
   if (!game) {
     return <div>No game loaded. Waiting for Game ID or connection...</div>;
   }
 
-  // Convertir el diccionario de territorios a un array para facilitar el renderizado en Map
   const territoriesArray = Object.values(game.territories || {});
   if (game) {
     const territoriesArray = Object.values(game.territories || {});
-    const renderApiError = error ? <div className="api-error">Error: {error}</div> : null; // Mostrar errores de API no fatales
-
+    const renderApiError = error ? <div className="api-error">Error: {error}</div> : null;
 
     return (
       <div className="App">
@@ -312,7 +301,12 @@ function App() {
         <div className="space-y-4">
           {renderApiError}
         </div>
-        <Map /* ... props ... */
+        <GameInfo
+          players={game.players}
+          currentPhase={game.currentPhase}
+          currentPlayerId={game.currentPlayerId}
+        />
+        <Map
           territories={territoriesArray}
           onTerritoryClick={handleTerritoryClick}
           selectedTerritoryId={selectedTerritoryId}
