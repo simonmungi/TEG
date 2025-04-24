@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using backend.Hubs;
 using backend.Models; // Necesario para los modelos
 using backend.Services; // Necesario para el servicio
@@ -6,6 +7,15 @@ using Microsoft.AspNetCore.Mvc; // Para FromBody, etc.
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Configuración de Servicios ---
+
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options => // También para MVC/API Controllers si se usan internamente
+{
+     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 builder.Services.AddEndpointsApiExplorer(); // Para que Swagger descubra los endpoints
 builder.Services.AddSwaggerGen();          // Para generar la UI de Swagger
@@ -29,6 +39,32 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+try{
+    var gameService = app.Services.GetRequiredService<IGameService>();
+    Console.WriteLine("--- Creando partida por defecto ---");
+    var defaultGame = await gameService.CreateNewGameAsync(null);
+    if(defaultGame != null){
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine("=======================================================");
+        Console.WriteLine("  PARTIDA POR DEFECTO CREADA CON ÉXITO");
+        Console.WriteLine($"  >> ID de la Partida: {defaultGame.Id} <<");
+        Console.WriteLine("  Copia este ID y pégalo en el modal del frontend.");
+        Console.WriteLine("=======================================================");
+        Console.ResetColor();
+    }
+        else
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine("!!! ERROR: No se pudo crear la partida por defecto.");
+        Console.ResetColor();
+    }
+}
+catch (Exception ex)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"!!! EXCEPCIÓN al crear partida por defecto: {ex.Message}");
+    Console.ResetColor();
+}
 // --- Configuración del Pipeline HTTP ---
 
 if (app.Environment.IsDevelopment())
@@ -45,21 +81,6 @@ app.UseAuthorization();
 
 app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Player>? initialPlayers) =>
 {
-    if (initialPlayers == null || !initialPlayers.Any())
-    {
-        initialPlayers = new List<Player>
-        {
-            new Player { Name = "Jugador 1", Color = "#a7c7e7" },
-            new Player { Name = "Jugador 2", Color = "#f5cba7" }
-        };
-    } else {
-        foreach (var p in initialPlayers.Where(p => string.IsNullOrEmpty(p.Id)))
-        {
-            p.Id = Guid.NewGuid().ToString();
-        }
-    }
-
-
     var newGame = await gameService.CreateNewGameAsync(initialPlayers);
     return Results.Created($"/api/games/{newGame.Id}", newGame);
 })
@@ -103,5 +124,8 @@ app.MapPost("/api/games/{gameId}/endturn",
 .WithName("EndTurn").WithTags("Game Actions");
 
 app.MapHub<GameHub>("/gamehub");
+
+
+Console.WriteLine("--- Iniciando el servidor web... ---");
 
 app.Run();

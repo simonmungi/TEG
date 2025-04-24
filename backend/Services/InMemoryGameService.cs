@@ -19,6 +19,25 @@ namespace backend.Services
 
         public async Task<Game> CreateNewGameAsync(List<Player> initialPlayers)
         {
+
+            if (initialPlayers == null || !initialPlayers.Any())
+            {
+                initialPlayers = new List<Player>
+                {
+                    new Player { Name = "Jugador 1", Color = "#a7c7e7" },
+                    new Player { Name = "Jugador 2", Color = "#f5cba7" },
+                    new Player { Name = "Jugador 3", Color = "#ab889e" },
+                    new Player { Name = "Jugador 4", Color = "#c30c22" },
+                };
+            }
+            else
+            {
+                foreach (var p in initialPlayers.Where(p => string.IsNullOrEmpty(p.Id)))
+                {
+                    p.Id = Guid.NewGuid().ToString();
+                }
+            }
+
             var newGame = new Game
             {
                 Players = initialPlayers ?? new List<Player>()

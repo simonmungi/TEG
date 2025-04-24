@@ -6,17 +6,18 @@ import GameControls from './components/GameControls'; // Crearemos este componen
 import GameInfo from './components/GameInfo'; // Crearemos este componente
 import GameIdModal from './components/GameIdModal';
 import './App.css';
+import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5011';
 
 function App() {
-  const [game, setGame] = useState(null); // Estado completo del juego
+  const [game, setGame] = useState(null);
   const [gameId, setGameId] = useState(null); // ID de la partida actual
   const [connection, setConnection] = useState(null); // Conexión SignalR
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedTerritoryId, setSelectedTerritoryId] = useState(null); // Territorio origen seleccionado
-  const [targetTerritoryId, setTargetTerritoryId] = useState(null);   // Territorio destino seleccionado
+  const [selectedTerritoryId, setSelectedTerritoryId] = useState(null);
+  const [targetTerritoryId, setTargetTerritoryId] = useState(null);
   const [arrayConexiones, setArrayConexiones] = useState([]);
 
   const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id;
@@ -88,23 +89,6 @@ function App() {
     };
   }, [gameId]); // Se ejecuta cuando gameId cambia
 
-
-  // useEffect(() => {
-  //   const manejarTecla = (e) => {
-  //     if (e.key.toLowerCase() === 'c') {
-  //       console.log('Tecla "c" presionada');
-  //       setArrayConexiones([]);
-  //     }
-  //   };
-
-  //   document.addEventListener('keydown', manejarTecla);
-
-  //   return () => {
-  //     document.removeEventListener('keydown', manejarTecla);
-  //   };
-  // }, []);
-
-
   const handleModalSubmit = (enteredId) => {
     console.log("Modal submitted Game ID: ", enteredId);
     setGameId(enteredId);
@@ -126,7 +110,7 @@ function App() {
     if (!territory) return;
 
     console.log(`Clicked on territory: ${territory.name} ID: ${territory.id} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
-    console.log("Game Phase: "+game.currentPhase);
+    console.log("Game Phase: " + game.currentPhase);
     switch (game.currentPhase) {
       case 'Reinforcement':
         if (territory.ownerPlayerId === currentPlayerId) {
@@ -186,44 +170,75 @@ function App() {
 
   const executeApiCall = async (endpoint, method, body) => {
     setError(null);
+    const url = `${API_BASE_URL}/${endpoint}`;
+
+    console.log(`Calling API (Axios): ${method} ${url}`, body);
+
     try {
-      console.log(`Calling API: ${method} ${endpoint}`, body);
-      const urlToFetch = `${API_BASE_URL}/${endpoint}`;
+      let response;
+      const config = {
+        headers: {}
+      };
 
-      const response = await fetch(`<span class="math-inline">\{API\_BASE\_URL\}</span>{endpoint}`, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+      const lowerCaseMethod = method.toLowerCase();
 
-      if (!response.ok) {
-        const errorData = await response.json(); // Intentar leer el mensaje de error del backend
-        console.error("API Error Response:", errorData);
-        throw new Error(errorData.message || errorData.title || `Error: ${response.statusText}`);
+      switch (lowerCaseMethod) {
+        case 'get':
+          response = await axios.get(url, { ...config, params: body });
+          break;
+        case 'post':
+          response = await axios.post(url, body, config);
+          break;
+        case 'put':
+          response = await axios.put(url, body, config);
+          break;
+        case 'delete':
+          response = await axios.delete(url, { ...config, data: body });
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
       }
 
-      // const result = await response.json();
-      console.log(`API Call ${method} ${endpoint} successful.`);
-      // La actualización del estado 'game' vendrá por SignalR ("GameStateUpdated")
+      console.log(`API Call ${method} ${url} successful. Response data:`, response.data);
+
       return true;
 
-    } catch (err) {
-      console.error(`API call failed (${method} ${endpoint}):`, err);
-      setError(err.message || "An unknown error occurred.");
+    } catch (error) {
+      console.error(`API call failed (${method} ${url}):`, error);
+
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          console.error('Error Data:', error.response.data);
+          console.error('Error Status:', error.response.status);
+          const message = error.response.data?.message
+            || error.response.data?.title
+            || (typeof error.response.data === 'string' ? error.response.data : `Server error (${error.response.status})`);
+          setError(message);
+        } else if (error.request) {
+          console.error('Error Request:', error.request);
+          setError('Network Error: No response received from server.');
+        } else {
+          console.error('Error Message:', error.message);
+          setError(`Request Setup Error: ${error.message}`);
+        }
+      } else {
+        setError(error.message || 'An unknown error occurred.');
+      }
       return false;
+
     } finally {
       setSelectedTerritoryId(null);
       setTargetTerritoryId(null);
+      console.log("Cleared selections in finally block.");
     }
   };
+
 
   const handleReinforce = (armyCount) => {
     if (!selectedTerritoryId || armyCount <= 0 || !game || !currentPlayerId) return;
     console.log(`Attempting reinforce on ${selectedTerritoryId} with ${armyCount} armies`);
     executeApiCall(
-      `/api/games/${gameId}/reinforce`,
+      `api/games/${gameId}/reinforce`,
       'POST',
       { playerId: currentPlayerId, territoryId: selectedTerritoryId, armyCount }
     );
@@ -290,10 +305,13 @@ function App() {
     return <div>No game loaded. Waiting for Game ID or connection...</div>;
   }
 
-  const territoriesArray = Object.values(game.territories || {});
+  const currentAvailableReinforcements = 5;
+
   if (game) {
     const territoriesArray = Object.values(game.territories || {});
     const renderApiError = error ? <div className="api-error">Error: {error}</div> : null;
+    const selectedTerritoryObject = selectedTerritoryId ? game.territories[selectedTerritoryId] : null;
+    const targetTerritoryObject = targetTerritoryId ? game.territories[targetTerritoryId] : null;
 
     return (
       <div className="App">
@@ -301,11 +319,28 @@ function App() {
         <div className="space-y-4">
           {renderApiError}
         </div>
+
+
         <GameInfo
           players={game.players}
           currentPhase={game.currentPhase}
           currentPlayerId={game.currentPlayerId}
         />
+
+        <GameControls
+          availableReinforcements={currentAvailableReinforcements}
+          onReinforce={handleReinforce}
+          onAttack={handleAttack}
+          onFortify={handleFortify}
+          onEndTurn={handleEndTurn}
+          onCancel={() => { setSelectedTerritoryId(null); setTargetTerritoryId(null); }}
+          gamePhase={game.currentPhase}
+          selectedTerritory={selectedTerritoryObject}
+          targetTerritory={targetTerritoryObject}
+          currentPlayerId={currentPlayerId}
+          gamePlayerId={game.currentPlayerId}
+        />
+
         <Map
           territories={territoriesArray}
           onTerritoryClick={handleTerritoryClick}

@@ -9,41 +9,76 @@ function GameControls({
     selectedTerritory,
     targetTerritory,
     currentPlayerId,
-    gamePlayerId,  // De quién ES el turno según el juego
+    gamePlayerId, 
+    availableReinforcements, 
     onReinforce,
     onAttack,
     onFortify,
     onEndTurn,
     onCancel
 }) {
+    const [armiesToAdd, setArmiesToAdd] = useState(1);
     const [armyCount, setArmyCount] = useState(1); // Para inputs de cantidad
     const isMyTurn = currentPlayerId === gamePlayerId;
 
-    // Resetear armyCount cuando cambien las selecciones o fase
     useEffect(() => {
         setArmyCount(1);
     }, [selectedTerritory, targetTerritory, gamePhase]);
 
+    useEffect(() => {
+        setArmiesToAdd(1);
+    }, [selectedTerritory, gamePhase]);
 
     if (!isMyTurn) {
         return <div className="game-controls">Esperando turno de otro jugador...</div>;
     }
 
+    const handleDecrement = () => {
+        setArmiesToAdd(prev => Math.max(1, prev - 1)); // No bajar de 1
+    };
+
+    const handleIncrement = () => {
+        setArmiesToAdd(prev => Math.min(availableReinforcements, prev + 1));
+    };
+
+    const handleConfirmReinforce = () => {
+        if (armiesToAdd > 0 && selectedTerritory) {
+            onReinforce(armiesToAdd);
+        }
+    };
+
     const renderReinforceControls = () => {
-        if (gamePhase !== 'Reinforcement' || !selectedTerritory) return null;
-        // TODO: Validar cuántos refuerzos tiene realmente el jugador
+        if (gamePhase !== 'Reinforcement' || !selectedTerritory || selectedTerritory.ownerPlayerId !== gamePlayerId) {
+            return (
+                 gamePhase === 'Reinforcement'
+                 ? <p>Selecciona un territorio propio para reforzar.<br/>Refuerzos disponibles: {availableReinforcements}</p>
+                 : null
+            );
+        }
+
         return (
-            <div>
-                <h4>Reforzar {selectedTerritory.name}</h4>
-                <input
-                    type="number"
-                    value={armyCount}
-                    onChange={(e) => setArmyCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    min="1"
-                // max={availableReinforcements} // Añadir cuando se calcule
-                />
-                <button onClick={() => onReinforce(armyCount)} disabled={armyCount <= 0}>Reforzar</button>
-                <button onClick={onCancel}>Cancelar</button>
+            <div className="reinforce-controls">
+                <h4>Reforzar: {selectedTerritory.name}</h4>
+                <p>Ejércitos disponibles: {availableReinforcements}</p>
+                <div className="army-selector">
+                    <button onClick={handleDecrement} disabled={armiesToAdd <= 1}>
+                        -
+                    </button>
+                    <span className="army-count">{armiesToAdd}</span>
+                    <button onClick={handleIncrement} disabled={armiesToAdd >= availableReinforcements}>
+                        +
+                    </button>
+                </div>
+                <div className="reinforce-actions">
+                    <button
+                        onClick={handleConfirmReinforce}
+                        disabled={armiesToAdd <= 0 || armiesToAdd > availableReinforcements}
+                        className="confirm-button"
+                    >
+                        Colocar {armiesToAdd} {armiesToAdd === 1 ? 'ejército' : 'ejércitos'}
+                    </button>
+                    <button onClick={onCancel} className="cancel-button">Cancelar</button>
+                </div>
             </div>
         );
     };
@@ -53,9 +88,7 @@ function GameControls({
         const maxAttackers = selectedTerritory.armies - 1;
         if (maxAttackers <= 0) return <p>No tienes suficientes ejércitos para atacar desde {selectedTerritory.name}.</p>;
 
-        // Ajustar el valor si excede el máximo permitido
         const currentArmyCount = Math.min(armyCount, maxAttackers);
-
 
         return (
             <div>
@@ -78,10 +111,7 @@ function GameControls({
         if (gamePhase !== 'Fortification' || !selectedTerritory || !targetTerritory) return null;
         const maxToMove = selectedTerritory.armies - 1;
         if (maxToMove <= 0) return <p>No tienes suficientes ejércitos para mover desde {selectedTerritory.name}.</p>;
-
-        // Ajustar el valor si excede el máximo permitido
         const currentArmyCount = Math.min(armyCount, maxToMove);
-
 
         return (
             <div>

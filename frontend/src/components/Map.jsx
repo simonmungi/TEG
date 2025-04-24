@@ -207,7 +207,7 @@ function Map({
                     const stage = e.target.getStage();
                     if (stage) stage.container().style.cursor = 'pointer';
                     e.target.opacity(1);
-                    e.target.fill('red');
+                    e.target.fill('yellow');
                   }}
                   onMouseLeave={e => {
                     if (!territory.clickable) return;
