@@ -9,6 +9,8 @@ const getPlayerColor = (playerId, players) => {
 };
 
 function Map({
+  gameTerritories = {}, // Cambiado de 'territories' para evitar confusión
+  uiPlacements = {},    // Nueva prop
   territories = [],
   players = [],
   onTerritoryClick,
@@ -179,6 +181,10 @@ function Map({
         <Layer>
 
           {territoriesArray.map((territory) => {
+            const originalArmies = territory.armies; 
+            const addedInUi = uiPlacements[territory.id] || 0;
+            const displayArmies = originalArmies + addedInUi;
+
 
             let center = calculateCenter(territory);
 
@@ -235,7 +241,7 @@ function Map({
 
                   {/* Texto con el número de ejércitos */}
                   <Text
-                    text={territory.armies.toString()}
+                    text={displayArmies.toString()}
                     fontSize={armyFontSize / stageScale} // Ajusta tamaño de fuente con zoom
                     fill="white"
                     align="center"

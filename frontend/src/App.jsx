@@ -20,7 +20,34 @@ function App() {
   const [targetTerritoryId, setTargetTerritoryId] = useState(null);
   const [arrayConexiones, setArrayConexiones] = useState([]);
 
+  const [uiReinforcements, setUiReinforcements] = useState({
+    initialTotalForTurn: 0,
+    remainingToPlaceInUI: 0,
+    placements: {}
+  });
+
   const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id;
+
+  useEffect(() => {
+    if (game && game.currentPhase === 'Reinforcement' && game.currentPlayerId === currentPlayerId) {
+      if (uiReinforcements.initialTotalForTurn != game.pendingReinforcements ||
+        Object.keys(uiReinforcements.placements).length > 0 && game.pendingReinforcements > 0
+      ) {
+        setUiReinforcements({
+          initialTotalForTurn: game.pendingReinforcements,
+          remainingToPlaceInUI: game.pendingReinforcements,
+          placements: {}
+        })
+      }
+    } else if (game && game.currentPhase !== 'Reinforcement' && Object.keys(uiReinforcements.placements).length > 0) {
+      setUiReinforcements({
+        initialTotalForTurn: 0,
+        remainingToPlaceInUI: 0,
+        placements: {}
+      });
+    }
+  }, [game, currentPlayerId]);
+
 
   // --- Efecto para obtener el estado inicial del juego ---
   useEffect(() => {
@@ -53,7 +80,18 @@ function App() {
 
   // --- Efecto para la conexión SignalR ---
   useEffect(() => {
-    if (!gameId || !game) return;
+    //console.log("SignalR useEffect triggered. GameId:", gameId);
+
+    if (!gameId) {
+      if (connection) {
+        console.log("No gameId, stopping existing SignalR connection.");
+        connection.stop().catch(err => console.error("Error stopping SignalR on gameId clear:", err));
+        setConnection(null);
+      }
+      return;
+    }
+
+    //console.log("Attempting to start SignalR connection for gameId:", gameId);
 
     const newConnection = new HubConnectionBuilder()
       .withUrl(`${API_BASE_URL}/gamehub`) // Ruta del Hub en el backend
@@ -63,31 +101,51 @@ function App() {
 
     setConnection(newConnection);
 
-    // Iniciar conexión y unirse al grupo
     newConnection.start()
       .then(() => {
-        console.log('SignalR Connected.');
-        // Unirse al grupo específico de esta partida
+        //console.log('>>> SIGNALR: Connection established successfully!');
         newConnection.invoke("JoinGameGroup", gameId.toString())
           .then(() => console.log(`Joined game group ${gameId}`))
           .catch(err => console.error('Error joining game group: ', err));
 
         // Escuchar actualizaciones del estado del juego
         newConnection.on("GameStateUpdated", (updatedGame) => {
-          console.log("GameStateUpdated received:", updatedGame);
-          setGame(updatedGame);
-          setSelectedTerritoryId(null);
-          setTargetTerritoryId(null);
+          //console.log(">>> SIGNALR: GameStateUpdated RECEIVED:", updatedGame);
+          if (updatedGame && updatedGame.id === gameId) {
+            console.log(">>> SIGNALR: Updating local game state.");
+            setGame(updatedGame);
+            setSelectedTerritoryId(null);
+            setTargetTerritoryId(null);
+            setError(null);
+          } else {
+            console.log(">>> SIGNALR: Received update for different game ID:", updatedGame?.id);
+          }
         });
-      })
-      .catch(e => console.error('SignalR Connection failed: ', e));
 
-    // Limpieza al desmontar el componente
+        newConnection.onclose(error => {
+          console.error('>>> SIGNALR: Connection closed unexpectedly.', error);
+        });
+
+      })
+      .catch(e => {
+        console.error('>>> SIGNALR: Connection failed to start:', e);
+        setConnection(null);
+      });
+
+    // Limpieza
     return () => {
-      console.log("Stopping SignalR connection");
-      newConnection.stop().catch(err => console.error("Error stopping SignalR:", err));
+      if (newConnection) {
+        console.log(">>> SIGNALR: Cleaning up SignalR connection for gameId:", gameId);
+        newConnection.invoke("LeaveGameGroup", gameId.toString())
+          .catch(err => console.error('>>> SIGNALR: Error leaving game group on cleanup: ', err))
+          .finally(() => {
+            newConnection.stop()
+              .then(() => console.log(">>> SIGNALR: Connection stopped successfully."))
+              .catch(err => console.error(">>> SIGNALR: Error stopping SignalR on cleanup:", err));
+          });
+      }
     };
-  }, [gameId]); // Se ejecuta cuando gameId cambia
+  }, [gameId]);
 
   const handleModalSubmit = (enteredId) => {
     console.log("Modal submitted Game ID: ", enteredId);
@@ -95,10 +153,6 @@ function App() {
   }
 
   // --- Manejadores de Acciones ---
-
-  useEffect(() => {
-    console.log(`{${arrayConexiones.map(id => `"${id}"`).join(', ')}}`);
-  }, [arrayConexiones]);
 
   const handleTerritoryClick = useCallback((territoryId) => {
     if (!game || game.currentPlayerId !== currentPlayerId) {
@@ -109,8 +163,8 @@ function App() {
     const territory = game.territories[territoryId];
     if (!territory) return;
 
-    console.log(`Clicked on territory: ${territory.name} ID: ${territory.id} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
-    console.log("Game Phase: " + game.currentPhase);
+    //console.log(`Clicked on territory: ${territory.name} ID: ${territory.id} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
+    //console.log("Game Phase: " + game.currentPhase);
     switch (game.currentPhase) {
       case 'Reinforcement':
         if (territory.ownerPlayerId === currentPlayerId) {
@@ -165,8 +219,6 @@ function App() {
         break;
     }
   }, [game, currentPlayerId, selectedTerritoryId]); // Dependencias del callback
-
-  // --- Funciones para llamar a la API (ejemplos) ---
 
   const executeApiCall = async (endpoint, method, body) => {
     setError(null);
@@ -233,7 +285,6 @@ function App() {
     }
   };
 
-
   const handleReinforce = (armyCount) => {
     if (!selectedTerritoryId || armyCount <= 0 || !game || !currentPlayerId) return;
     console.log(`Attempting reinforce on ${selectedTerritoryId} with ${armyCount} armies`);
@@ -280,11 +331,66 @@ function App() {
     executeApiCall(
       `/api/games/${gameId}/endturn`,
       'POST',
-      { playerId: currentPlayerId } // Objeto simple con playerId
+      { playerId: currentPlayerId }
     );
     setSelectedTerritoryId(null);
     setTargetTerritoryId(null);
   };
+
+  const handleUiIncrementPlacement = (territoryId) => {
+    if (uiReinforcements.remainingToPlaceInUI <= 0) return;
+
+    setUiReinforcements(prev => ({
+      ...prev,
+      remainingToPlaceInUI: prev.remainingToPlaceInUI - 1,
+      placements: {
+        ...prev.placements,
+        [territoryId]: (prev.placements[territoryId] || 0) + 1
+      }
+    }));
+  };
+
+  const handleUiDecrementPlacement = (territoryId) => {
+    if (!uiReinforcements.placements[territoryId] || uiReinforcements.placements[territoryId] <= 0) return;
+    if (uiReinforcements.remainingToPlaceInUI >= uiReinforcements.initialTotalForTurn) return;
+
+    setUiReinforcements(prev => ({
+      ...prev,
+      remainingToPlaceInUI: prev.remainingToPlaceInUI + 1,
+      placements: {
+        ...prev.placements,
+        [territoryId]: prev.placements[territoryId] - 1
+      }
+    }));
+  };
+
+  const handleConfirmAllReinforcements = async () => {
+
+    if (uiReinforcements.remainingToPlaceInUI !== 0) {
+      setError("Aún hay refuerzos por colocar.");
+      return;
+    }
+
+    if (Object.keys(uiReinforcements.placements).length === 0 && uiReinforcements.initialTotalForTurn > 0) {
+
+    }
+
+    const placementsToSend = Object.entries(uiReinforcements.placements)
+      .filter(([territoryId, count]) => count > 0)
+      .map(([territoryId, count]) => ({ territoryId, armyCount: count }));
+
+
+    const success = await executeApiCall(
+      `/api/games/${gameId}/reinforcements/commit`, // Nuevo endpoint
+      'POST',
+      {
+        playerId: currentPlayerId, // Importante: enviar quién está haciendo la acción
+        placements: placementsToSend
+      }
+    );
+
+  };
+
 
   // --- Renderizado ---
 
@@ -305,7 +411,7 @@ function App() {
     return <div>No game loaded. Waiting for Game ID or connection...</div>;
   }
 
-  const currentAvailableReinforcements = 5;
+  //const currentAvailableReinforcements = 5;//TODO: Remove
 
   if (game) {
     const territoriesArray = Object.values(game.territories || {});
@@ -320,7 +426,6 @@ function App() {
           {renderApiError}
         </div>
 
-
         <GameInfo
           players={game.players}
           currentPhase={game.currentPhase}
@@ -328,17 +433,20 @@ function App() {
         />
 
         <GameControls
-          availableReinforcements={currentAvailableReinforcements}
-          onReinforce={handleReinforce}
+          gamePhase={game.currentPhase}
+          selectedTerritory={selectedTerritoryId ? game.territories[selectedTerritoryId] : null}
+          gamePlayerId={game.currentPlayerId}
+
+          remainingToPlaceInUI={uiReinforcements.remainingToPlaceInUI}
+          placedOnSelectedTerritory={selectedTerritoryId ? uiReinforcements.placements[selectedTerritoryId] : 0}
+          onUiIncrementPlacement={handleUiIncrementPlacement}
+          onUiDecrementPlacement={handleUiDecrementPlacement}
+          onConfirmAllReinforcements={handleConfirmAllReinforcements}
+
           onAttack={handleAttack}
           onFortify={handleFortify}
-          onEndTurn={handleEndTurn}
-          onCancel={() => { setSelectedTerritoryId(null); setTargetTerritoryId(null); }}
-          gamePhase={game.currentPhase}
-          selectedTerritory={selectedTerritoryObject}
-          targetTerritory={targetTerritoryObject}
-          currentPlayerId={currentPlayerId}
-          gamePlayerId={game.currentPlayerId}
+          onEndTurn={handleEndTurn} // Ya no lo usamos para confirmar refuerzos
+          onCancel={() => { setSelectedTerritoryId(null); }}
         />
 
         <Map
@@ -348,9 +456,11 @@ function App() {
           targetTerritoryId={targetTerritoryId}
           players={game.players}
         />
+
         <div className="signalr-status" style={{ marginTop: '20px' }}>
           SignalR: {connection?.state || 'Disconnected'}
         </div>
+
       </div>
     );
   }

@@ -7,5 +7,6 @@ namespace backend.Models{
         public string? CurrentPlayerId { get; set; }
         public GamePhase CurrentPhase { get; set; } = GamePhase.WaitingForPlayers;
         public List<string> TurnOrder { get; set; } = new List<string>();
+        public int PendingReinforcements { get; set; }
     }
 }

@@ -1,4 +1,5 @@
 using backend.Models;
+using backend.Models.RequestsDTOs;
 
 namespace backend.Services{
     public interface IGameService
@@ -9,5 +10,6 @@ namespace backend.Services{
         Task<AttackResult> AttackAsync(Guid gameId, AttackRequest request);
         Task<(bool Success, string Message, Game? GameState)> FortifyAsync(Guid gameId, FortifyRequest request);
         Task<(bool Success, string Message, Game? GameState)> EndTurnAsync(Guid gameId, string playerId); // Quien termina el turno
+        Task<(bool Success, string Message, Game? GameState)> CommitReinforcementsAsync(Guid gameId, string playerId, List<ReinforcementPlacementDto> placements);
     }
 }

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using backend.Hubs;
 using backend.Models; // Necesario para los modelos
+using backend.Models.RequestsDTOs;
 using backend.Services; // Necesario para el servicio
 using Microsoft.AspNetCore.Mvc; // Para FromBody, etc.
 
@@ -19,9 +20,12 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options => // T
 
 builder.Services.AddEndpointsApiExplorer(); // Para que Swagger descubra los endpoints
 builder.Services.AddSwaggerGen();          // Para generar la UI de Swagger
-
+ 
 builder.Services.AddSingleton<IGameService, InMemoryGameService>();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -123,8 +127,17 @@ app.MapPost("/api/games/{gameId}/endturn",
 })
 .WithName("EndTurn").WithTags("Game Actions");
 
-app.MapHub<GameHub>("/gamehub");
+// POST /api/games/{gameId}/endturn ################################################################################################
+app.MapPost("/api/games/{gameId}/reinforcements/commit",
+    async (Guid gameId, [FromBody] CommitReinforcementsRequest request, IGameService gameService) =>
+{
+    var (success, message, gameState) = await gameService.CommitReinforcementsAsync(gameId, request.PlayerId, request.Placements);
+    return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+})
+.WithName("CommitReinforcements")
+.WithTags("Game Actions");
 
+app.MapHub<GameHub>("/gamehub");
 
 Console.WriteLine("--- Iniciando el servidor web... ---");
 

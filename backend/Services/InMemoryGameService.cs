@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using backend.Hubs;
 using backend.Models;
+using backend.Models.RequestsDTOs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace backend.Services
@@ -50,6 +51,17 @@ namespace backend.Services
             newGame.CurrentPhase = newGame.Players.Any() ? GamePhase.Reinforcement : GamePhase.WaitingForPlayers;
             newGame.CurrentPlayerId = newGame.TurnOrder.FirstOrDefault();
 
+            if (!string.IsNullOrEmpty(newGame.CurrentPlayerId))
+            {
+                newGame.CurrentPhase = GamePhase.Reinforcement;
+                newGame.PendingReinforcements = CalculateReinforcementForPlayer(newGame, newGame.CurrentPlayerId);
+            }
+            else
+            {
+                newGame.CurrentPhase = GamePhase.WaitingForPlayers; // O GameOver
+                newGame.PendingReinforcements = 0;
+            }
+
             _activeGames.TryAdd(newGame.Id, newGame);
 
             await NotifyGameStateUpdate(newGame.Id, newGame);
@@ -62,7 +74,6 @@ namespace backend.Services
             _activeGames.TryGetValue(gameId, out var game);
             return Task.FromResult(game);
         }
-
         private void InitializeMap(Game game)
         {
             var territories_extended = new List<Territory>
@@ -205,7 +216,6 @@ namespace backend.Services
                 game.Territories.Add(t.Id, t);
             }
         }
-
         private void AssignInitialTerritories(Game game)
         {
             if (!game.Players.Any()) return;
@@ -230,7 +240,6 @@ namespace backend.Services
             var random = new Random();
             game.TurnOrder = game.Players.Select(p => p.Id).OrderBy(id => random.Next()).ToList();
         }
-
         public async Task<(bool Success, string Message, Game? GameState)> ReinforceAsync(Guid gameId, ReinforceRequest request)
         {
             if (!_activeGames.TryGetValue(gameId, out var game)) return (false, "Partida no encontrada", null);
@@ -240,18 +249,20 @@ namespace backend.Services
             if (!game.Territories.TryGetValue(request.TerritoryId, out var territory)) return (false, "Territorio no encontrado.", game);
             if (territory.OwnerPlayerId != request.PlayerId) return (false, "No puedes reforzar un territorio que no te pertenece.", game);
             if (request.ArmyCount <= 0) return (false, "Debes reforzar con al menos 1 ejército.", game);
+            if (request.ArmyCount <= 0) return (false, "Debes reforzar con al menos 1 ejército.", game);
+            if (request.ArmyCount > game.PendingReinforcements)
+                return (false, $"No puedes colocar {request.ArmyCount} ejércitos. Solo tienes {game.PendingReinforcements} refuerzos disponibles.", game);
 
-            // TODO: Implementar lógica real de cálculo de refuerzos (ej. basado en territorios, continentes, cartas)
             // Por ahora, asumamos que el jugador tiene 'X' refuerzos disponibles y los gasta.
             // Esta validación es crucial y falta aquí.
 
             territory.Armies += request.ArmyCount;
+            game.PendingReinforcements -= request.ArmyCount;
 
             await NotifyGameStateUpdate(gameId, game);
 
             return (true, $"{request.ArmyCount} ejércitos añadidos a {territory.Name}.", game);
         }
-
         public async Task<AttackResult> AttackAsync(Guid gameId, AttackRequest request)
         {
             var result = new AttackResult { Success = false };
@@ -350,7 +361,6 @@ namespace backend.Services
             await NotifyGameStateUpdate(gameId, game); // Notificar a todos
             return result;
         }
-
         public async Task<(bool Success, string Message, Game? GameState)> FortifyAsync(Guid gameId, FortifyRequest request)
         {
             if (!_activeGames.TryGetValue(gameId, out var game))
@@ -389,16 +399,59 @@ namespace backend.Services
             if (currentPlayerIndex == -1) return (false, "Jugador no encontrado en el orden de turnos.", game);
 
             int nextPlayerIndex = (currentPlayerIndex + 1) % game.TurnOrder.Count;
-            game.CurrentPlayerId = game.TurnOrder[nextPlayerIndex];
-            game.CurrentPhase = GamePhase.Reinforcement; // El siguiente jugador empieza reforzando
+            string nextPlayerId = game.TurnOrder[nextPlayerIndex]; // Obtener el ID del siguiente jugador
 
-            // TODO: Calcular refuerzos para el nuevo jugador.
-            // TODO: Chequear condiciones de fin de juego.
-            // TODO: Resetear flags (ej. si ya fortificó).
+            game.CurrentPlayerId = nextPlayerId;
+            game.CurrentPhase = GamePhase.Reinforcement; // El nuevo jugador siempre empieza reforzando
+
+            game.PendingReinforcements = CalculateReinforcementForPlayer(game, nextPlayerId);
 
             await NotifyGameStateUpdate(gameId, game);
-            return (true, $"Turno terminado. Es el turno de {game.Players.FirstOrDefault(p => p.Id == game.CurrentPlayerId)?.Name}.", game);
+            var nextPlayerName = game.Players.FirstOrDefault(p => p.Id == nextPlayerId)?.Name ?? "N/A";
+            return (true, $"Turno terminado. Es el turno de {nextPlayerName}. Recibe {game.PendingReinforcements} refuerzos.", game);
         }
+
+        public async Task<(bool Success, string Message, Game? GameState)> CommitReinforcementsAsync(Guid gameId, string playerId, List<ReinforcementPlacementDto> placements)
+        {
+            if (!_activeGames.TryGetValue(gameId, out var game))
+                return (false, "Partida no encontrada.", null);
+
+            if (game.CurrentPlayerId != playerId)
+                return (false, "No es tu turno.", game);
+            if (game.CurrentPhase != GamePhase.Reinforcement)
+                return (false, "No estás en la fase de refuerzo para confirmar.", game);
+
+            int totalArmiesPlacedByPlayer = placements?.Sum(p => p.ArmyCount) ?? 0;
+
+            if (totalArmiesPlacedByPlayer < 0) // No debería pasar si el frontend valida bien
+                return (false, "La cantidad de ejércitos colocados no puede ser negativa.", game);
+
+            if (totalArmiesPlacedByPlayer != game.PendingReinforcements)
+            {
+                return (false, $"Debes colocar exactamente {game.PendingReinforcements} ejércitos. Intentaste colocar {totalArmiesPlacedByPlayer}.", game);
+            }
+
+            // Aplicar los refuerzos a los territorios
+            foreach (var placement in placements)
+            {
+                if (placement.ArmyCount > 0) 
+                {
+                    if (!game.Territories.TryGetValue(placement.TerritoryId, out var territory))
+                        return (false, $"Territorio {placement.TerritoryId} no encontrado durante la confirmación.", game);
+                    if (territory.OwnerPlayerId != playerId)
+                        return (false, $"No puedes reforzar el territorio {territory.Name} porque no te pertenece.", game);
+
+                    territory.Armies += placement.ArmyCount;
+                }
+            }
+
+            game.PendingReinforcements = 0;
+            game.CurrentPhase = GamePhase.Attack;
+
+            await NotifyGameStateUpdate(gameId, game);
+            return (true, "Refuerzos confirmados. Fase de Ataque iniciada.", game);
+        }
+
 
         private List<int> RollDice(int count)
         {
@@ -440,6 +493,22 @@ namespace backend.Services
                 }
             }
             return false; // No se encontró conexión
+        }
+
+        private int CalculateReinforcementForPlayer(Game game, string playerId)
+        {
+            if (string.IsNullOrEmpty(playerId) || !game.Players.Any(p => p.Id == playerId))
+                return 0;
+
+            //Regla basica número de territorios / 3, mínimo 3
+
+            int territoriesOwned = game.Territories.Values.Count(t => t.OwnerPlayerId == playerId);
+            int calculatedReinforcements = Math.Max(3, territoriesOwned / 3);
+
+            // TODO:
+            // - Bonificaciones por continentes completos.
+            // - Refuerzos por canje de cartas.
+            return calculatedReinforcements;
         }
 
         private async Task NotifyGameStateUpdate(Guid gameId, Game game)

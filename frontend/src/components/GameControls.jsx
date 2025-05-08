@@ -9,12 +9,17 @@ function GameControls({
     selectedTerritory,
     targetTerritory,
     currentPlayerId,
-    gamePlayerId, 
-    availableReinforcements, 
+    gamePlayerId,
+    availableReinforcements,
     onReinforce,
     onAttack,
     onFortify,
     onEndTurn,
+    remainingToPlaceInUI,       // Cuántos quedan por colocar según la UI
+    placedOnSelectedTerritory,  // Cuántos se han añadido al terr. selecc. en la UI
+    onUiIncrementPlacement,     // Handler para el botón '+'
+    onUiDecrementPlacement,     // Handler para el botón '-'
+    onConfirmAllReinforcements, // Handler para el botón "Confirmar Refuerzos"
     onCancel
 }) {
     const [armiesToAdd, setArmiesToAdd] = useState(1);
@@ -49,35 +54,41 @@ function GameControls({
 
     const renderReinforceControls = () => {
         if (gamePhase !== 'Reinforcement' || !selectedTerritory || selectedTerritory.ownerPlayerId !== gamePlayerId) {
-            return (
-                 gamePhase === 'Reinforcement'
-                 ? <p>Selecciona un territorio propio para reforzar.<br/>Refuerzos disponibles: {availableReinforcements}</p>
-                 : null
-            );
+            return gamePhase === 'Reinforcement' ? <p>Selecciona un territorio propio para reforzar.</p> : null;
         }
+
+        const displayArmiesInTerritory = selectedTerritory.armies + (placedOnSelectedTerritory || 0);
 
         return (
             <div className="reinforce-controls">
                 <h4>Reforzar: {selectedTerritory.name}</h4>
-                <p>Ejércitos disponibles: {availableReinforcements}</p>
+                <p>Ejércitos en territorio: {displayArmiesInTerritory} ({selectedTerritory.armies} base + {placedOnSelectedTerritory || 0} añadidos)</p>
                 <div className="army-selector">
-                    <button onClick={handleDecrement} disabled={armiesToAdd <= 1}>
+                    <button
+                        onClick={() => onUiDecrementPlacement(selectedTerritory.id)}
+                        disabled={(placedOnSelectedTerritory || 0) <= 0}
+                    >
                         -
                     </button>
-                    <span className="army-count">{armiesToAdd}</span>
-                    <button onClick={handleIncrement} disabled={armiesToAdd >= availableReinforcements}>
+                    <span className="army-count" title="Refuerzos que te quedan por colocar en este turno">
+                        {remainingToPlaceInUI}
+                    </span>
+                    <button
+                        onClick={() => onUiIncrementPlacement(selectedTerritory.id)}
+                        disabled={remainingToPlaceInUI <= 0}
+                    >
                         +
                     </button>
                 </div>
                 <div className="reinforce-actions">
                     <button
-                        onClick={handleConfirmReinforce}
-                        disabled={armiesToAdd <= 0 || armiesToAdd > availableReinforcements}
+                        onClick={onConfirmAllReinforcements}
+                        disabled={remainingToPlaceInUI > 0} // Habilitado solo si ya se colocaron todos
                         className="confirm-button"
                     >
-                        Colocar {armiesToAdd} {armiesToAdd === 1 ? 'ejército' : 'ejércitos'}
+                        Confirmar Refuerzos
                     </button>
-                    <button onClick={onCancel} className="cancel-button">Cancelar</button>
+                    <button onClick={onCancel} className="cancel-button">Deseleccionar</button>
                 </div>
             </div>
         );
