@@ -415,7 +415,6 @@ namespace backend.Services
         {
             if (!_activeGames.TryGetValue(gameId, out var game))
                 return (false, "Partida no encontrada.", null);
-
             if (game.CurrentPlayerId != playerId)
                 return (false, "No es tu turno.", game);
             if (game.CurrentPhase != GamePhase.Reinforcement)
@@ -423,7 +422,7 @@ namespace backend.Services
 
             int totalArmiesPlacedByPlayer = placements?.Sum(p => p.ArmyCount) ?? 0;
 
-            if (totalArmiesPlacedByPlayer < 0) // No debería pasar si el frontend valida bien
+            if (totalArmiesPlacedByPlayer < 0)
                 return (false, "La cantidad de ejércitos colocados no puede ser negativa.", game);
 
             if (totalArmiesPlacedByPlayer != game.PendingReinforcements)
@@ -446,10 +445,11 @@ namespace backend.Services
             }
 
             game.PendingReinforcements = 0;
-            game.CurrentPhase = GamePhase.Attack;
+            //game.CurrentPhase = GamePhase.Attack;
 
-            await NotifyGameStateUpdate(gameId, game);
-            return (true, "Refuerzos confirmados. Fase de Ataque iniciada.", game);
+            //await NotifyGameStateUpdate(gameId, game);
+            //return (true, "Refuerzos confirmados. Fase de Ataque iniciada.", game);
+            return await EndTurnAsync(gameId,playerId);
         }
 
 

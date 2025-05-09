@@ -9,8 +9,7 @@ const getPlayerColor = (playerId, players) => {
 };
 
 function Map({
-  gameTerritories = {}, // Cambiado de 'territories' para evitar confusión
-  uiPlacements = {},    // Nueva prop
+  uiPlacements = {},   
   territories = [],
   players = [],
   onTerritoryClick,
@@ -98,7 +97,7 @@ function Map({
     let direction = e.evt.deltaY > 0 ? -1 : 1;
 
     // Aplicar límites de zoom
-    const minScale = 1.3;
+    const minScale = 1;
     const maxScale = 5.0;
 
     let newScale;
@@ -158,8 +157,7 @@ function Map({
     return center;
   };
 
-
-  const armyCounterRadius = 12;
+  const armyCounterRadius = 10;
   const armyFontSize = 10;
   const nameFontSize = 10; 
   const labelPadding = 3;
@@ -232,7 +230,7 @@ function Map({
                 >
                   {/* Círculo de fondo */}
                   <Circle
-                    radius={armyCounterRadius / stageScale}
+                    radius={armyCounterRadius+ (displayArmies)/ stageScale}
                     fill={"black"}
                     opacity={1}
                     stroke="#FFF"

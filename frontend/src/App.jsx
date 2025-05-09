@@ -6,7 +6,7 @@ import GameControls from './components/GameControls'; // Crearemos este componen
 import GameInfo from './components/GameInfo'; // Crearemos este componente
 import GameIdModal from './components/GameIdModal';
 import './App.css';
-import axios from 'axios';
+import { useGameActions } from './hooks/useGameHandlers';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5011';
 
@@ -18,7 +18,7 @@ function App() {
   const [error, setError] = useState(null);
   const [selectedTerritoryId, setSelectedTerritoryId] = useState(null);
   const [targetTerritoryId, setTargetTerritoryId] = useState(null);
-  const [arrayConexiones, setArrayConexiones] = useState([]);
+  const [myPlayerId, setMyPlayerId] = useState(null);
 
   const [uiReinforcements, setUiReinforcements] = useState({
     initialTotalForTurn: 0,
@@ -26,28 +26,25 @@ function App() {
     placements: {}
   });
 
-  const currentPlayerId = game?.players.find(p => p.id === game?.currentPlayerId)?.id || game?.players[0]?.id;
-
-  useEffect(() => {
-    if (game && game.currentPhase === 'Reinforcement' && game.currentPlayerId === currentPlayerId) {
-      if (uiReinforcements.initialTotalForTurn != game.pendingReinforcements ||
-        Object.keys(uiReinforcements.placements).length > 0 && game.pendingReinforcements > 0
-      ) {
-        setUiReinforcements({
-          initialTotalForTurn: game.pendingReinforcements,
-          remainingToPlaceInUI: game.pendingReinforcements,
-          placements: {}
-        })
-      }
-    } else if (game && game.currentPhase !== 'Reinforcement' && Object.keys(uiReinforcements.placements).length > 0) {
-      setUiReinforcements({
-        initialTotalForTurn: 0,
-        remainingToPlaceInUI: 0,
-        placements: {}
-      });
-    }
-  }, [game, currentPlayerId]);
-
+  const {
+    handleTerritoryClick,
+    handleUiIncrementPlacement,
+    handleUiDecrementPlacement,
+    handleConfirmAllReinforcements,
+    handleEndTurn,
+    handleAttack,
+    handleFortify,
+    executeApiCall // Si lo mueves y lo devuelves
+  } = useGameActions({
+    game, setGame,
+    gameId,
+    myPlayerId,
+    uiReinforcements, setUiReinforcements,
+    selectedTerritoryId, setSelectedTerritoryId,
+    targetTerritoryId, setTargetTerritoryId,
+    setError,
+    API_BASE_URL
+  });
 
   // --- Efecto para obtener el estado inicial del juego ---
   useEffect(() => {
@@ -64,11 +61,20 @@ function App() {
         }
         const data = await response.json();
         console.log("Initial game state fetched:", data);
+
+        if (data && data.players && data.players.length > 0) {
+          const localPlayerToAssume = data.players.find(p => p.id === data.currentPlayerId);
+          if (localPlayerToAssume) {
+            console.log(`Asumiendo ser el jugador: ${localPlayerToAssume.name} (ID: ${localPlayerToAssume.id})`);
+            setMyPlayerId(localPlayerToAssume.id);
+          }
+        }
+
         setGame(data);
       } catch (err) {
         console.error("Error fetching game:", err);
         setError(err.message);
-        setGame(null); // Limpiar estado si hay error
+        setGame(null);
         setGameId(null);
       } finally {
         setIsLoading(false);
@@ -76,11 +82,10 @@ function App() {
     };
 
     fetchGame();
-  }, [gameId]); // Se ejecuta cuando gameId cambia
+  }, [gameId]);
 
   // --- Efecto para la conexión SignalR ---
   useEffect(() => {
-    //console.log("SignalR useEffect triggered. GameId:", gameId);
 
     if (!gameId) {
       if (connection) {
@@ -90,8 +95,6 @@ function App() {
       }
       return;
     }
-
-    //console.log("Attempting to start SignalR connection for gameId:", gameId);
 
     const newConnection = new HubConnectionBuilder()
       .withUrl(`${API_BASE_URL}/gamehub`) // Ruta del Hub en el backend
@@ -147,250 +150,41 @@ function App() {
     };
   }, [gameId]);
 
+  useEffect(() => {
+  if (game) {
+    if (game.currentPhase === 'Reinforcement' && game.currentPlayerId === myPlayerId) {
+
+      const currentUiTotalPlaced = Object.values(uiReinforcements.placements).reduce((sum, count) => sum + count, 0);
+      const expectedRemainingInUi = uiReinforcements.initialTotalForTurn - currentUiTotalPlaced;
+
+      if ( (uiReinforcements.initialTotalForTurn === 0 && game.pendingReinforcements > 0) ||
+           (game.pendingReinforcements !== uiReinforcements.remainingToPlaceInUI && Object.keys(uiReinforcements.placements).length === 0) ||
+           (uiReinforcements.initialTotalForTurn > 0 && game.pendingReinforcements > uiReinforcements.remainingToPlaceInUI) 
+        ) {
+        setUiReinforcements({
+          initialTotalForTurn: game.pendingReinforcements,
+          remainingToPlaceInUI: game.pendingReinforcements,
+          placements: {} 
+        });
+      }
+    } else {
+
+      if (Object.keys(uiReinforcements.placements).length > 0 || uiReinforcements.remainingToPlaceInUI !== 0 || uiReinforcements.initialTotalForTurn !== 0) {
+        console.log("[UI Reinforcement] Not in our Reinforcement phase. Clearing UI state. Current Phase:", game.currentPhase);
+        setUiReinforcements({
+          initialTotalForTurn: 0,
+          remainingToPlaceInUI: 0,
+          placements: {}
+        });
+      }
+    }
+  }
+}, [game, myPlayerId]);
+
   const handleModalSubmit = (enteredId) => {
     console.log("Modal submitted Game ID: ", enteredId);
     setGameId(enteredId);
   }
-
-  // --- Manejadores de Acciones ---
-
-  const handleTerritoryClick = useCallback((territoryId) => {
-    if (!game || game.currentPlayerId !== currentPlayerId) {
-      console.log("Not your turn or no game loaded.");
-      return;
-    }
-
-    const territory = game.territories[territoryId];
-    if (!territory) return;
-
-    //console.log(`Clicked on territory: ${territory.name} ID: ${territory.id} (Owner: ${territory.ownerPlayerId}, Armies: ${territory.armies})`);
-    //console.log("Game Phase: " + game.currentPhase);
-    switch (game.currentPhase) {
-      case 'Reinforcement':
-        if (territory.ownerPlayerId === currentPlayerId) {
-          setSelectedTerritoryId(territoryId); // Selecciona para reforzar
-          setTargetTerritoryId(null);
-          console.log(`Selected ${territory.name} for reinforcement.`);
-        } else {
-          setSelectedTerritoryId(null);
-          setTargetTerritoryId(null);
-        }
-        break;
-
-      case 'Attack':
-        if (selectedTerritoryId === null && territory.ownerPlayerId === currentPlayerId && territory.armies > 1) {
-          setSelectedTerritoryId(territoryId); // Selecciona origen del ataque
-          setTargetTerritoryId(null);
-          console.log(`Selected ${territory.name} as attack origin.`);
-        } else if (selectedTerritoryId !== null && territory.ownerPlayerId !== currentPlayerId) {
-          if (game.territories[selectedTerritoryId]?.adjacentTerritoryIds.includes(territoryId)) {
-            setTargetTerritoryId(territoryId); // Selecciona destino del ataque
-            console.log(`Selected ${territory.name} as attack target.`);
-          } else {
-            console.log("Target territory is not adjacent.");
-            // Podrías deseleccionar origen aquí o mostrar mensaje
-          }
-
-        } else {
-          // Clic inválido en esta fase (ej. clic en propio territorio como destino)
-          setSelectedTerritoryId(null);
-          setTargetTerritoryId(null);
-        }
-        break;
-
-      case 'Fortification':
-        if (selectedTerritoryId === null && territory.ownerPlayerId === currentPlayerId && territory.armies > 1) {
-          setSelectedTerritoryId(territoryId);
-          setTargetTerritoryId(null);
-          console.log(`Selected ${territory.name} as fortify origin.`);
-        } else if (selectedTerritoryId !== null && territory.ownerPlayerId === currentPlayerId && territoryId !== selectedTerritoryId) {
-          setTargetTerritoryId(territoryId);
-          console.log(`Selected ${territory.name} as fortify target.`);
-        } else {
-          setSelectedTerritoryId(null);
-          setTargetTerritoryId(null);
-        }
-        break;
-
-      default:
-        console.log("Cannot select territory in phase:", game.currentPhase);
-        setSelectedTerritoryId(null);
-        setTargetTerritoryId(null);
-        break;
-    }
-  }, [game, currentPlayerId, selectedTerritoryId]); // Dependencias del callback
-
-  const executeApiCall = async (endpoint, method, body) => {
-    setError(null);
-    const url = `${API_BASE_URL}/${endpoint}`;
-
-    console.log(`Calling API (Axios): ${method} ${url}`, body);
-
-    try {
-      let response;
-      const config = {
-        headers: {}
-      };
-
-      const lowerCaseMethod = method.toLowerCase();
-
-      switch (lowerCaseMethod) {
-        case 'get':
-          response = await axios.get(url, { ...config, params: body });
-          break;
-        case 'post':
-          response = await axios.post(url, body, config);
-          break;
-        case 'put':
-          response = await axios.put(url, body, config);
-          break;
-        case 'delete':
-          response = await axios.delete(url, { ...config, data: body });
-          break;
-        default:
-          throw new Error(`Unsupported HTTP method: ${method}`);
-      }
-
-      console.log(`API Call ${method} ${url} successful. Response data:`, response.data);
-
-      return true;
-
-    } catch (error) {
-      console.error(`API call failed (${method} ${url}):`, error);
-
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.error('Error Data:', error.response.data);
-          console.error('Error Status:', error.response.status);
-          const message = error.response.data?.message
-            || error.response.data?.title
-            || (typeof error.response.data === 'string' ? error.response.data : `Server error (${error.response.status})`);
-          setError(message);
-        } else if (error.request) {
-          console.error('Error Request:', error.request);
-          setError('Network Error: No response received from server.');
-        } else {
-          console.error('Error Message:', error.message);
-          setError(`Request Setup Error: ${error.message}`);
-        }
-      } else {
-        setError(error.message || 'An unknown error occurred.');
-      }
-      return false;
-
-    } finally {
-      setSelectedTerritoryId(null);
-      setTargetTerritoryId(null);
-      console.log("Cleared selections in finally block.");
-    }
-  };
-
-  const handleReinforce = (armyCount) => {
-    if (!selectedTerritoryId || armyCount <= 0 || !game || !currentPlayerId) return;
-    console.log(`Attempting reinforce on ${selectedTerritoryId} with ${armyCount} armies`);
-    executeApiCall(
-      `api/games/${gameId}/reinforce`,
-      'POST',
-      { playerId: currentPlayerId, territoryId: selectedTerritoryId, armyCount }
-    );
-  };
-
-  const handleAttack = (armyCount) => {
-    if (!selectedTerritoryId || !targetTerritoryId || armyCount <= 0 || !game || !currentPlayerId) return;
-    console.log(`Attempting attack from ${selectedTerritoryId} to ${targetTerritoryId} with ${armyCount} armies`);
-    executeApiCall(
-      `/api/games/${gameId}/attack`,
-      'POST',
-      {
-        playerId: currentPlayerId,
-        attackingTerritoryId: selectedTerritoryId,
-        defendingTerritoryId: targetTerritoryId,
-        attackingArmies: armyCount
-      }
-    );
-  };
-
-  const handleFortify = (armyCount) => {
-    if (!selectedTerritoryId || !targetTerritoryId || armyCount <= 0 || !game || !currentPlayerId) return;
-    console.log(`Attempting fortify from ${selectedTerritoryId} to ${targetTerritoryId} with ${armyCount} armies`);
-    executeApiCall(
-      `/api/games/${gameId}/fortify`,
-      'POST',
-      {
-        playerId: currentPlayerId,
-        fromTerritoryId: selectedTerritoryId,
-        toTerritoryId: targetTerritoryId,
-        armyCount
-      }
-    );
-  };
-
-  const handleEndTurn = () => {
-    if (!game || !currentPlayerId) return;
-    console.log("Attempting to end turn");
-    executeApiCall(
-      `/api/games/${gameId}/endturn`,
-      'POST',
-      { playerId: currentPlayerId }
-    );
-    setSelectedTerritoryId(null);
-    setTargetTerritoryId(null);
-  };
-
-  const handleUiIncrementPlacement = (territoryId) => {
-    if (uiReinforcements.remainingToPlaceInUI <= 0) return;
-
-    setUiReinforcements(prev => ({
-      ...prev,
-      remainingToPlaceInUI: prev.remainingToPlaceInUI - 1,
-      placements: {
-        ...prev.placements,
-        [territoryId]: (prev.placements[territoryId] || 0) + 1
-      }
-    }));
-  };
-
-  const handleUiDecrementPlacement = (territoryId) => {
-    if (!uiReinforcements.placements[territoryId] || uiReinforcements.placements[territoryId] <= 0) return;
-    if (uiReinforcements.remainingToPlaceInUI >= uiReinforcements.initialTotalForTurn) return;
-
-    setUiReinforcements(prev => ({
-      ...prev,
-      remainingToPlaceInUI: prev.remainingToPlaceInUI + 1,
-      placements: {
-        ...prev.placements,
-        [territoryId]: prev.placements[territoryId] - 1
-      }
-    }));
-  };
-
-  const handleConfirmAllReinforcements = async () => {
-
-    if (uiReinforcements.remainingToPlaceInUI !== 0) {
-      setError("Aún hay refuerzos por colocar.");
-      return;
-    }
-
-    if (Object.keys(uiReinforcements.placements).length === 0 && uiReinforcements.initialTotalForTurn > 0) {
-
-    }
-
-    const placementsToSend = Object.entries(uiReinforcements.placements)
-      .filter(([territoryId, count]) => count > 0)
-      .map(([territoryId, count]) => ({ territoryId, armyCount: count }));
-
-
-    const success = await executeApiCall(
-      `/api/games/${gameId}/reinforcements/commit`, // Nuevo endpoint
-      'POST',
-      {
-        playerId: currentPlayerId, // Importante: enviar quién está haciendo la acción
-        placements: placementsToSend
-      }
-    );
-
-  };
-
 
   // --- Renderizado ---
 
@@ -414,7 +208,6 @@ function App() {
   //const currentAvailableReinforcements = 5;//TODO: Remove
 
   if (game) {
-    const territoriesArray = Object.values(game.territories || {});
     const renderApiError = error ? <div className="api-error">Error: {error}</div> : null;
     const selectedTerritoryObject = selectedTerritoryId ? game.territories[selectedTerritoryId] : null;
     const targetTerritoryObject = targetTerritoryId ? game.territories[targetTerritoryId] : null;
@@ -435,8 +228,8 @@ function App() {
         <GameControls
           gamePhase={game.currentPhase}
           selectedTerritory={selectedTerritoryId ? game.territories[selectedTerritoryId] : null}
-          gamePlayerId={game.currentPlayerId}
-
+          currentPlayerId={game.currentPlayerId}
+          localPlayerId={myPlayerId}
           remainingToPlaceInUI={uiReinforcements.remainingToPlaceInUI}
           placedOnSelectedTerritory={selectedTerritoryId ? uiReinforcements.placements[selectedTerritoryId] : 0}
           onUiIncrementPlacement={handleUiIncrementPlacement}
@@ -450,7 +243,8 @@ function App() {
         />
 
         <Map
-          territories={territoriesArray}
+          territories={game.territories}
+          uiPlacements={uiReinforcements.placements}
           onTerritoryClick={handleTerritoryClick}
           selectedTerritoryId={selectedTerritoryId}
           targetTerritoryId={targetTerritoryId}

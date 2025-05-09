@@ -9,7 +9,7 @@ function GameControls({
     selectedTerritory,
     targetTerritory,
     currentPlayerId,
-    gamePlayerId,
+    localPlayerId,
     availableReinforcements,
     onReinforce,
     onAttack,
@@ -24,7 +24,7 @@ function GameControls({
 }) {
     const [armiesToAdd, setArmiesToAdd] = useState(1);
     const [armyCount, setArmyCount] = useState(1); // Para inputs de cantidad
-    const isMyTurn = currentPlayerId === gamePlayerId;
+    const isMyTurn = currentPlayerId === localPlayerId;
 
     useEffect(() => {
         setArmyCount(1);
@@ -53,7 +53,7 @@ function GameControls({
     };
 
     const renderReinforceControls = () => {
-        if (gamePhase !== 'Reinforcement' || !selectedTerritory || selectedTerritory.ownerPlayerId !== gamePlayerId) {
+        if (gamePhase !== 'Reinforcement' || !selectedTerritory || selectedTerritory.ownerPlayerId !== localPlayerId) {
             return gamePhase === 'Reinforcement' ? <p>Selecciona un territorio propio para reforzar.</p> : null;
         }
 
@@ -62,7 +62,6 @@ function GameControls({
         return (
             <div className="reinforce-controls">
                 <h4>Reforzar: {selectedTerritory.name}</h4>
-                <p>Ejércitos en territorio: {displayArmiesInTerritory} ({selectedTerritory.armies} base + {placedOnSelectedTerritory || 0} añadidos)</p>
                 <div className="army-selector">
                     <button
                         onClick={() => onUiDecrementPlacement(selectedTerritory.id)}
@@ -149,14 +148,11 @@ function GameControls({
             {renderAttackControls()}
             {renderFortifyControls()}
 
-            {/* Botón para terminar fase/turno */}
             {gamePhase === 'Attack' && (!selectedTerritory || !targetTerritory) && <button onClick={onEndTurn}>Terminar Fase de Ataque</button>}
             {gamePhase === 'Fortification' && (!selectedTerritory || !targetTerritory) && <button onClick={onEndTurn}>Terminar Turno</button>}
-            {/* Podrías tener botones explícitos para cambiar de fase */}
 
         </div>
 
     );
 }
-// Añade estilos básicos en GameControls.css
 export default GameControls;
