@@ -205,8 +205,6 @@ function App() {
     return <div>No game loaded. Waiting for Game ID or connection...</div>;
   }
 
-  //const currentAvailableReinforcements = 5;//TODO: Remove
-
   if (game) {
     const renderApiError = error ? <div className="api-error">Error: {error}</div> : null;
     const selectedTerritoryObject = selectedTerritoryId ? game.territories[selectedTerritoryId] : null;
@@ -232,13 +230,13 @@ function App() {
           localPlayerId={myPlayerId}
           remainingToPlaceInUI={uiReinforcements.remainingToPlaceInUI}
           placedOnSelectedTerritory={selectedTerritoryId ? uiReinforcements.placements[selectedTerritoryId] : 0}
+          
           onUiIncrementPlacement={handleUiIncrementPlacement}
           onUiDecrementPlacement={handleUiDecrementPlacement}
           onConfirmAllReinforcements={handleConfirmAllReinforcements}
-
           onAttack={handleAttack}
           onFortify={handleFortify}
-          onEndTurn={handleEndTurn} // Ya no lo usamos para confirmar refuerzos
+          onEndTurn={handleEndTurn}
           onCancel={() => { setSelectedTerritoryId(null); }}
         />
 
