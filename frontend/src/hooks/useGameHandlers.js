@@ -80,6 +80,8 @@ export const useGameActions = ({
 
     const handleTerritoryClick = useCallback((territoryId) => {
         if (!game || game.currentPlayerId !== myPlayerId) {
+            console.log("currentPlayerId",game.currentPlayerId);
+            console.log("myPlayerId",myPlayerId);
             console.log("Not your turn or no game loaded.");
             return;
         }
@@ -112,7 +114,6 @@ export const useGameActions = ({
                         console.log(`Selected ${territory.name} as attack target.`);
                     } else {
                         console.log("Target territory is not adjacent.");
-                        // Podrías deseleccionar origen aquí o mostrar mensaje
                     }
 
                 } else {
@@ -142,7 +143,7 @@ export const useGameActions = ({
                 setTargetTerritoryId(null);
                 break;
         }
-    }, [game, selectedTerritoryId]);
+    }, [game, selectedTerritoryId, myPlayerId]);
 
     const handleUiIncrementPlacement = useCallback((territoryId) => {
         if (uiReinforcements.remainingToPlaceInUI <= 0) return;

@@ -46,7 +46,6 @@ function App() {
     API_BASE_URL
   });
 
-  // --- Efecto para obtener el estado inicial del juego ---
   useEffect(() => {
     if (!gameId) return;
 
@@ -152,6 +151,10 @@ function App() {
 
   useEffect(() => {
   if (game) {
+
+    setMyPlayerId(game.currentPlayerId); //TODO: ELIMINAR
+    console.log(`Asumiendo ser el jugador: (ID: ${game.currentPlayerId})`);
+
     if (game.currentPhase === 'Reinforcement' && game.currentPlayerId === myPlayerId) {
 
       const currentUiTotalPlaced = Object.values(uiReinforcements.placements).reduce((sum, count) => sum + count, 0);
@@ -170,6 +173,7 @@ function App() {
     } else {
 
       if (Object.keys(uiReinforcements.placements).length > 0 || uiReinforcements.remainingToPlaceInUI !== 0 || uiReinforcements.initialTotalForTurn !== 0) {
+        console.log("uiReinforcements: ",uiReinforcements);
         console.log("[UI Reinforcement] Not in our Reinforcement phase. Clearing UI state. Current Phase:", game.currentPhase);
         setUiReinforcements({
           initialTotalForTurn: 0,
