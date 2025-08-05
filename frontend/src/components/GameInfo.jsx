@@ -5,11 +5,11 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 
 const phaseDisplayNames = {
-    WaitingForPlayers: "Esperando Jugadores",
-    Reinforcement: "Refuerzo",
-    Attack: "Ataque",
-    Fortification: "Fortificación",
-    GameOver: "Partida Terminada"
+    WaitingForPlayers: "ESPERANDO JUGADORES",
+    Reinforcement: "REFUERZO",
+    Attack: "ATAQUE",
+    Fortification: "FORTIFICACIÓN",
+    GameOver: "PARTIDA TERMINADA"
 };
 
 function GameInfo({ players, currentPlayerId, currentPhase }) {
@@ -18,24 +18,17 @@ function GameInfo({ players, currentPlayerId, currentPhase }) {
 
     return (
 
-        <div className="game-info">
-            <h3>Información de la Partida</h3>
-            
-            <div className="info-item">
-                <strong>Fase Actual</strong> 
-                <span style={{ color: '#81c784', fontWeight: '600' }}>{phaseName}</span>
+        <div className="game-info">            
+            <div className="info-item phase-item">
+                <span style={{  fontWeight: '600', fontSize: '1.5rem' }}>{phaseName}</span>
             </div>
             
             <div className="players-section">
                 <ul className="players-list">
                     {players.map(p => (
-                        <li key={p.id} className={`player-item ${p.id === currentPlayerId ? 'current-player' : ''}`}>
+                        <li key={p.id} className={`player-item ${p.id === currentPlayerId ? 'current-player' : ''}`} style={{ backgroundColor: p.color }}>
                             <div className="player-name">
-                                <div 
-                                    className="color-indicator" 
-                                    style={{ backgroundColor: p.color }}
-                                ></div>
-                                <span style={{ color: p.color }}>{p.name}</span>
+                                <span style={{ color: '#1a1a2e' }}>{p.name}</span>
                                 {p.id === currentPlayerId && (
                                     <span className="current-player-badge">Turno Actual</span>
                                 )}

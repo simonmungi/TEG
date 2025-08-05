@@ -11,11 +11,6 @@
     transition: all 0.3s ease;
 }
 
-.game-info:hover {
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
-}
-
 .game-info h3 {
     margin-top: 0;
     margin-bottom: 24px;
@@ -37,13 +32,11 @@
     padding: 16px 20px;
     background: #0f3460;
     border-radius: 14px;
-    border-left: 4px solid #4fc3f7;
     transition: all 0.2s ease;
 }
 
-.info-item:hover {
-    background: #124266;
-    transform: translateX(4px);
+.info-item.phase-item {
+    justify-content: center;
 }
 
 .info-item strong {
@@ -75,7 +68,6 @@
 }
 
 .player-item {
-    background: #0f3460;
     border-radius: 12px;
     padding: 16px 20px;
     border: 2px solid transparent;
@@ -85,15 +77,14 @@
 }
 
 .player-item:hover {
-    background: #124266;
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    opacity: 0.9;
 }
 
 .player-item.current-player {
-    background: #1a4d72;
-    border-color: #4fc3f7;
-    box-shadow: 0 0 20px rgba(79, 195, 247, 0.3);
+    border-color: #fff;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
 .player-name {

@@ -9,7 +9,7 @@ const getPlayerColor = (playerId, players) => {
 };
 
 function Map({
-  uiPlacements = {},   
+  uiPlacements = {},
   territories = [],
   players = [],
   onTerritoryClick,
@@ -159,13 +159,13 @@ function Map({
 
   const armyCounterRadius = 10;
   const armyFontSize = 10;
-  const nameFontSize = 10; 
+  const nameFontSize = 10;
   const labelPadding = 3;
 
   const displayTerritories = territories && Object.keys(territories).length > 0 ? territories : placeholderTerritories;
   const territoriesArray = Array.isArray(displayTerritories) ? displayTerritories : Object.values(displayTerritories);
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', border: '1px solid red', position: 'relative' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', backgroundColor: '#0f3460', borderRadius: '10px', position: 'relative' }}>
       <Stage
         width={stageSize.width}
         height={stageSize.height}
@@ -179,7 +179,7 @@ function Map({
         <Layer>
 
           {territoriesArray.map((territory) => {
-            const originalArmies = territory.armies; 
+            const originalArmies = territory.armies;
             const addedInUi = uiPlacements[territory.id] || 0;
             const displayArmies = originalArmies + addedInUi;
 
@@ -230,7 +230,7 @@ function Map({
                 >
                   {/* Círculo de fondo */}
                   <Circle
-                    radius={armyCounterRadius+ (displayArmies)/ stageScale}
+                    radius={armyCounterRadius + (displayArmies) / stageScale}
                     fill={"black"}
                     opacity={1}
                     stroke="#FFF"
@@ -246,20 +246,10 @@ function Map({
                     verticalAlign="middle"
 
                     x={-armyCounterRadius / stageScale}
-                    y={-armyCounterRadius / stageScale} 
-                    width={armyCounterRadius * 2 / stageScale} 
-                    height={armyCounterRadius * 2 / stageScale} 
+                    y={-armyCounterRadius / stageScale}
+                    width={armyCounterRadius * 2 / stageScale}
+                    height={armyCounterRadius * 2 / stageScale}
                   />
-
-                  {/* <Text
-                    text={territory.name} 
-                    fontSize={nameFontSize / stageScale}
-                    fill="black"
-                    align="center"
-                    y={(armyCounterRadius / stageScale) + (labelPadding / stageScale)}
-                    width={territory.name.length * (nameFontSize / stageScale) * 0.6}
-                    offsetX={(territory.name.length * (nameFontSize / stageScale) * 0.6) / 2}
-                  /> */}
                 </Group>}
               </React.Fragment>
             );
