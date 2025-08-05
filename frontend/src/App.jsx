@@ -25,6 +25,7 @@ function App() {
   const [selectedTerritoryId, setSelectedTerritoryId] = useState(null);
   const [targetTerritoryId, setTargetTerritoryId] = useState(null);
   const [uiReinforcements, setUiReinforcements] = useState(INITIAL_UI_REINFORCEMENTS);
+  const [gameControlsOpen, setGameControlsOpen] = useState(false);
 
   // Custom hooks
   const { game, setGame, isLoading, error, setError, myPlayerId, setMyPlayerId } = useGameData(gameId, API_BASE_URL);
@@ -53,7 +54,8 @@ function App() {
     selectedTerritoryId, setSelectedTerritoryId,
     targetTerritoryId, setTargetTerritoryId,
     setError,
-    API_BASE_URL
+    API_BASE_URL,
+    setGameControlsOpen
   });
 
   // UI Reinforcements management
@@ -142,6 +144,7 @@ function App() {
       <GameControls
         gamePhase={game.currentPhase}
         selectedTerritory={selectedTerritoryId ? game.territories[selectedTerritoryId] : null}
+        targetTerritory={targetTerritoryId ? game.territories[targetTerritoryId] : null}
         currentPlayerId={game.currentPlayerId}
         localPlayerId={myPlayerId}
         remainingToPlaceInUI={uiReinforcements.remainingToPlaceInUI}
@@ -153,6 +156,8 @@ function App() {
         onFortify={handleFortify}
         onEndTurn={handleEndTurn}
         onCancel={handleCancel}
+        open={gameControlsOpen}
+        onClose={() => setGameControlsOpen(false)}
       />
 
       <Map

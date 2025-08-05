@@ -9,7 +9,8 @@ export const useGameActions = ({
     selectedTerritoryId, setSelectedTerritoryId,
     targetTerritoryId, setTargetTerritoryId,
     setError,
-    API_BASE_URL
+    API_BASE_URL,
+    setGameControlsOpen
 }) => {
 
     const executeApiCall = useCallback(async (endpoint, method, body) => {
@@ -96,6 +97,7 @@ export const useGameActions = ({
                 if (territory.ownerPlayerId === myPlayerId) {
                     setSelectedTerritoryId(territoryId); // Selecciona para reforzar
                     setTargetTerritoryId(null);
+                    setGameControlsOpen(true); // Abre el modal automáticamente
                     console.log(`Selected ${territory.name} for reinforcement.`);
                 } else {
                     setSelectedTerritoryId(null);
@@ -127,9 +129,11 @@ export const useGameActions = ({
                 if (selectedTerritoryId === null && territory.ownerPlayerId === myPlayerId && territory.armies > 1) {
                     setSelectedTerritoryId(territoryId);
                     setTargetTerritoryId(null);
+                    setGameControlsOpen(true); // Abre el modal automáticamente
                     console.log(`Selected ${territory.name} as fortify origin.`);
                 } else if (selectedTerritoryId !== null && territory.ownerPlayerId === myPlayerId && territoryId !== selectedTerritoryId) {
                     setTargetTerritoryId(territoryId);
+                    setGameControlsOpen(true); // Abre el modal cuando se selecciona destino
                     console.log(`Selected ${territory.name} as fortify target.`);
                 } else {
                     setSelectedTerritoryId(null);

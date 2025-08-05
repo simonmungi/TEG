@@ -1,8 +1,23 @@
+/* Estilos para eliminar el borde blanco del Dialog */
+.MuiDialog-paper {
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.game-controls {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+    height: 100%;
+}
+
 .reinforce-controls {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border: none;
     padding: 25px;
-    margin-top: 15px;
+    margin-bottom: 15px;
     border-radius: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(4px);

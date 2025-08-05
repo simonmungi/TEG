@@ -1,8 +1,8 @@
 // src/components/GameControls.jsx
 import React, { useState, useEffect } from 'react';
 import './GameControls.css';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
+import Dialog from '@mui/material/Dialog';
+import Button from '@mui/material/Button';
 
 function GameControls({
     gamePhase,
@@ -20,7 +20,9 @@ function GameControls({
     onUiIncrementPlacement,     // Handler para el botón '+'
     onUiDecrementPlacement,     // Handler para el botón '-'
     onConfirmAllReinforcements, // Handler para el botón "Confirmar Refuerzos"
-    onCancel
+    onCancel,
+    open,                       // Control modal visibility
+    onClose                     // Close modal handler
 }) {
     const [armiesToAdd, setArmiesToAdd] = useState(1);
     const [armyCount, setArmyCount] = useState(1); // Para inputs de cantidad
@@ -35,7 +37,25 @@ function GameControls({
     }, [selectedTerritory, gamePhase]);
 
     if (!isMyTurn) {
-        return <div className="game-controls">Esperando turno de otro jugador...</div>;
+        return (
+            <Dialog 
+                open={open} 
+                onClose={onClose}
+                maxWidth="sm" 
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        background: 'transparent',
+                        boxShadow: 'none',
+                        overflow: 'visible'
+                    }
+                }}
+            >
+                <div className="reinforce-controls">
+                    Esperando turno de otro jugador...
+                </div>
+            </Dialog>
+        );
     }
 
     const handleDecrement = () => {
@@ -101,7 +121,7 @@ function GameControls({
         const currentArmyCount = Math.min(armyCount, maxAttackers);
 
         return (
-            <div>
+            <div className="reinforce-controls">
                 <h4>Atacar {targetTerritory.name} desde {selectedTerritory.name}</h4>
                 <label>Ejércitos a usar (máx: {maxAttackers}): </label>
                 <input
@@ -124,7 +144,7 @@ function GameControls({
         const currentArmyCount = Math.min(armyCount, maxToMove);
 
         return (
-            <div>
+            <div className="reinforce-controls">
                 <h4>Fortificar: Mover de {selectedTerritory.name} a {targetTerritory.name}</h4>
                 <label>Ejércitos a mover (máx: {maxToMove}): </label>
                 <input
@@ -140,19 +160,44 @@ function GameControls({
         );
     };
 
+    const renderEndTurnButtons = () => {
+        if (gamePhase === 'Attack' && (!selectedTerritory || !targetTerritory)) {
+            return (
+                <div className="reinforce-controls">
+                    <Button onClick={onEndTurn} variant="contained" fullWidth>Terminar Fase de Ataque</Button>
+                </div>
+            );
+        }
+        if (gamePhase === 'Fortification' && (!selectedTerritory || !targetTerritory)) {
+            return (
+                <div className="reinforce-controls">
+                    <Button onClick={onEndTurn} variant="contained" fullWidth>Terminar Turno</Button>
+                </div>
+            );
+        }
+        return null;
+    };
 
     return (
-        <div className="game-controls">
-            <h3>Acciones</h3>
+        <Dialog 
+            open={open} 
+            onClose={onClose} 
+            maxWidth="sm" 
+            fullWidth
+            PaperProps={{
+                sx: {
+                    background: 'transparent',
+                    boxShadow: 'none',
+                    overflow: 'visible'
+                }
+            }}
+        >
             {renderReinforceControls()}
             {renderAttackControls()}
             {renderFortifyControls()}
-
-            {gamePhase === 'Attack' && (!selectedTerritory || !targetTerritory) && <button onClick={onEndTurn}>Terminar Fase de Ataque</button>}
-            {gamePhase === 'Fortification' && (!selectedTerritory || !targetTerritory) && <button onClick={onEndTurn}>Terminar Turno</button>}
-
-        </div>
-
+            {renderEndTurnButtons()}
+        </Dialog>
     );
 }
+
 export default GameControls;
