@@ -20,21 +20,21 @@ const INITIAL_UI_REINFORCEMENTS = {
 function App() {
   // Game ID state
   const [gameId, setGameId] = useState(null);
-  
+
   // UI state
   const [selectedTerritoryId, setSelectedTerritoryId] = useState(null);
   const [targetTerritoryId, setTargetTerritoryId] = useState(null);
   const [uiReinforcements, setUiReinforcements] = useState(INITIAL_UI_REINFORCEMENTS);
-  
+
   // Custom hooks
   const { game, setGame, isLoading, error, setError, myPlayerId, setMyPlayerId } = useGameData(gameId, API_BASE_URL);
-  
+
   const handleGameStateUpdate = (updatedGame) => {
     setGame(updatedGame);
     setSelectedTerritoryId(null);
     setTargetTerritoryId(null);
   };
-  
+
   const connection = useSignalR(gameId, API_BASE_URL, handleGameStateUpdate);
 
   const {
@@ -59,21 +59,21 @@ function App() {
   // UI Reinforcements management
   const shouldResetUIReinforcements = (game, myPlayerId, uiReinforcements) => {
     if (!game || game.currentPhase !== 'Reinforcement' || game.currentPlayerId !== myPlayerId) {
-      return Object.keys(uiReinforcements.placements).length > 0 || 
-             uiReinforcements.remainingToPlaceInUI !== 0 || 
-             uiReinforcements.initialTotalForTurn !== 0;
+      return Object.keys(uiReinforcements.placements).length > 0 ||
+        uiReinforcements.remainingToPlaceInUI !== 0 ||
+        uiReinforcements.initialTotalForTurn !== 0;
     }
     return false;
   };
-  
+
   const shouldInitializeUIReinforcements = (game, myPlayerId, uiReinforcements) => {
     if (!game || game.currentPhase !== 'Reinforcement' || game.currentPlayerId !== myPlayerId) {
       return false;
     }
-    
+
     return (uiReinforcements.initialTotalForTurn === 0 && game.pendingReinforcements > 0) ||
-           (game.pendingReinforcements !== uiReinforcements.remainingToPlaceInUI && Object.keys(uiReinforcements.placements).length === 0) ||
-           (uiReinforcements.initialTotalForTurn > 0 && game.pendingReinforcements > uiReinforcements.remainingToPlaceInUI);
+      (game.pendingReinforcements !== uiReinforcements.remainingToPlaceInUI && Object.keys(uiReinforcements.placements).length === 0) ||
+      (uiReinforcements.initialTotalForTurn > 0 && game.pendingReinforcements > uiReinforcements.remainingToPlaceInUI);
   };
 
   useEffect(() => {
@@ -111,20 +111,20 @@ function App() {
       <span>Loading game...</span>
     </div>
   );
-  
+
   const renderErrorState = () => (
     <div className="error-state">
       <div>⚠️ Error: {error}</div>
       <button onClick={() => window.location.reload()}>🔄 Retry</button>
     </div>
   );
-  
+
   const renderWaitingState = () => (
     <div className="waiting-state">
       🎮 No game loaded. Waiting for Game ID or connection...
     </div>
   );
-  
+
   const renderApiError = () => error && game ? <div className="api-error">Error: {error}</div> : null;
 
   const renderGameContent = () => (

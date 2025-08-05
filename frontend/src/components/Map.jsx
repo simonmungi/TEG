@@ -43,7 +43,7 @@ function Map({
 
         const scaleX = newWidth / mapBounds.width;
         const scaleY = newHeight / mapBounds.height;
-        const initialScale = Math.min(scaleX, scaleY);
+        const initialScale = Math.min(scaleX, scaleY) * 1.35;
         setStageScale(initialScale);
 
         const initialX = (newWidth - mapBounds.width * initialScale) / 2 - mapBounds.minX * initialScale;
