@@ -1,144 +1,200 @@
 using System.Text.Json.Serialization;
 using backend.Hubs;
-using backend.Models; // Necesario para los modelos
+using backend.Models;
 using backend.Models.RequestsDTOs;
-using backend.Services; // Necesario para el servicio
-using Microsoft.AspNetCore.Mvc; // Para FromBody, etc.
+using backend.Services;
+using Microsoft.AspNetCore.Mvc;
+
+const string CORS_POLICY_NAME = "_myAllowSpecificOrigins";
+const string FRONTEND_URL = "http://localhost:5173";
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Configuración de Servicios ---
-
-builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
-builder.Services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options => // También para MVC/API Controllers si se usan internamente
-{
-     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
-
-builder.Services.AddEndpointsApiExplorer(); // Para que Swagger descubra los endpoints
-builder.Services.AddSwaggerGen();          // Para generar la UI de Swagger
- 
-builder.Services.AddSingleton<IGameService, InMemoryGameService>();
-builder.Services.AddSignalR().AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
-
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-                          policy.WithOrigins("http://localhost:5173") // Puerto del Frontend React
-                                .AllowAnyHeader()
-                                .AllowAnyMethod()
-                                .AllowCredentials(); // IMPORTANTE para SignalR si usa autenticación/cookies
-                      });
-});
-
+ConfigureServices(builder.Services);
 
 var app = builder.Build();
 
-try{
-    var gameService = app.Services.GetRequiredService<IGameService>();
-    Console.WriteLine("--- Creando partida por defecto ---");
-    var defaultGame = await gameService.CreateNewGameAsync(null);
-    if(defaultGame != null){
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("=======================================================");
-        Console.WriteLine("  PARTIDA POR DEFECTO CREADA CON ÉXITO");
-        Console.WriteLine($"  >> ID de la Partida: {defaultGame.Id} <<");
-        Console.WriteLine("  Copia este ID y pégalo en el modal del frontend.");
-        Console.WriteLine("=======================================================");
-        Console.ResetColor();
-    }
-        else
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine("!!! ERROR: No se pudo crear la partida por defecto.");
-        Console.ResetColor();
-    }
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"!!! EXCEPCIÓN al crear partida por defecto: {ex.Message}");
-    Console.ResetColor();
-}
-// --- Configuración del Pipeline HTTP ---
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();        
-    app.UseSwaggerUI();         
-}
-
-app.UseHttpsRedirection();
-app.UseCors(MyAllowSpecificOrigins);
-app.UseAuthorization();
-
-// --- Definición de Endpoints (Minimal APIs) ---
-
-app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Player>? initialPlayers) =>
-{
-    var newGame = await gameService.CreateNewGameAsync(initialPlayers);
-    return Results.Created($"/api/games/{newGame.Id}", newGame);
-})
-.WithName("CreateGame") 
-.WithTags("Game Management");
-
-// GET /api/games/{gameId} ################################################################################################
-app.MapGet("/api/games/{gameId}", async (Guid gameId, IGameService gameService) =>
-{
-    var game = await gameService.GetGameAsync(gameId);
-    return game != null ? Results.Ok(game) : Results.NotFound();
-})
-.WithName("GetGame").WithTags("Game Management");
-
-// POST /api/games/{gameId}/reinforce ################################################################################################
-app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>{
-    var (success, message, gameState) = await gameService.ReinforceAsync(gameId,request);
-    return success ? Results.Ok(new {message, gameState}) : Results.BadRequest(new {message});
-}
-).WithName("Reinforce").WithTags("Game Actions");
-
-// POST /api/games/{gameId}/attack ################################################################################################
-app.MapPost("/api/games/{gameId}/attack", async (Guid gameId, [FromBody] AttackRequest request, IGameService gameService) => {
-    var result = await gameService.AttackAsync(gameId, request);
-    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
-}).WithName("Attack").WithTags("Game Actions");
-
-// POST /api/games/{gameId}/fortify ################################################################################################
-app.MapPost("/api/games/{gameId}/fortify", async (Guid gameId, [FromBody] FortifyRequest request, IGameService gameService) => {
-    var (success, message, gameState) = await gameService.FortifyAsync(gameId, request);
-    return success ? Results.Ok(new {message, gameState}) : Results.BadRequest(new {message});
-}).WithName("Fortify").WithTags("Game Actions");
-
- // POST /api/games/{gameId}/endturn ################################################################################################
-app.MapPost("/api/games/{gameId}/endturn",
-    async (Guid gameId, [FromBody] PlayerActionBase request, IGameService gameService) => // Usar un modelo base o simple
-{
-     var (success, message, gameState) = await gameService.EndTurnAsync(gameId, request.PlayerId);
-     return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
-})
-.WithName("EndTurn").WithTags("Game Actions");
-
-// POST /api/games/{gameId}/endturn ################################################################################################
-app.MapPost("/api/games/{gameId}/reinforcements/commit",
-    async (Guid gameId, [FromBody] CommitReinforcementsRequest request, IGameService gameService) =>
-{
-    var (success, message, gameState) = await gameService.CommitReinforcementsAsync(gameId, request.PlayerId, request.Placements);
-    return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
-})
-.WithName("CommitReinforcements")
-.WithTags("Game Actions");
-
-app.MapHub<GameHub>("/gamehub");
+await InitializeDefaultGameAsync(app);
+ConfigureMiddleware(app);
+ConfigureEndpoints(app);
 
 Console.WriteLine("--- Iniciando el servidor web... ---");
-
 app.Run();
+
+static void ConfigureServices(IServiceCollection services)
+{
+    ConfigureJsonSerialization(services);
+    ConfigureSwagger(services);
+    ConfigureGameServices(services);
+    ConfigureSignalR(services);
+    ConfigureCors(services);
+}
+
+static void ConfigureJsonSerialization(IServiceCollection services)
+{
+    services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+    {
+        options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+    
+    services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+}
+
+static void ConfigureSwagger(IServiceCollection services)
+{
+    services.AddEndpointsApiExplorer();
+    services.AddSwaggerGen();
+}
+
+static void ConfigureGameServices(IServiceCollection services)
+{
+    services.AddSingleton<IGameService, InMemoryGameService>();
+}
+
+static void ConfigureSignalR(IServiceCollection services)
+{
+    services.AddSignalR().AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+}
+
+static void ConfigureCors(IServiceCollection services)
+{
+    services.AddCors(options =>
+    {
+        options.AddPolicy(name: CORS_POLICY_NAME, policy =>
+        {
+            policy.WithOrigins(FRONTEND_URL)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
+    });
+}
+
+static async Task InitializeDefaultGameAsync(WebApplication app)
+{
+    try
+    {
+        var gameService = app.Services.GetRequiredService<IGameService>();
+        Console.WriteLine("--- Creando partida por defecto ---");
+        
+        var defaultGame = await gameService.CreateNewGameAsync(null);
+        if (defaultGame != null)
+        {
+            PrintSuccessMessage(defaultGame.Id);
+        }
+        else
+        {
+            PrintErrorMessage("No se pudo crear la partida por defecto.");
+        }
+    }
+    catch (Exception ex)
+    {
+        PrintErrorMessage($"EXCEPCIÓN al crear partida por defecto: {ex.Message}");
+    }
+}
+
+static void PrintSuccessMessage(Guid gameId)
+{
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine("=======================================================");
+    Console.WriteLine("  PARTIDA POR DEFECTO CREADA CON ÉXITO");
+    Console.WriteLine($"  >> ID de la Partida: {gameId} <<");
+    Console.WriteLine("  Copia este ID y pégalo en el modal del frontend.");
+    Console.WriteLine("=======================================================");
+    Console.ResetColor();
+}
+
+static void PrintErrorMessage(string message)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"!!! ERROR: {message}");
+    Console.ResetColor();
+}
+
+static void ConfigureMiddleware(WebApplication app)
+{
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseCors(CORS_POLICY_NAME);
+    app.UseAuthorization();
+}
+
+static void ConfigureEndpoints(WebApplication app)
+{
+    MapGameManagementEndpoints(app);
+    MapGameActionEndpoints(app);
+    app.MapHub<GameHub>("/gamehub");
+}
+
+static void MapGameManagementEndpoints(WebApplication app)
+{
+    app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Player>? initialPlayers) =>
+    {
+        var newGame = await gameService.CreateNewGameAsync(initialPlayers);
+        return Results.Created($"/api/games/{newGame.Id}", newGame);
+    })
+    .WithName("CreateGame")
+    .WithTags("Game Management");
+
+    app.MapGet("/api/games/{gameId}", async (Guid gameId, IGameService gameService) =>
+    {
+        var game = await gameService.GetGameAsync(gameId);
+        return game != null ? Results.Ok(game) : Results.NotFound();
+    })
+    .WithName("GetGame")
+    .WithTags("Game Management");
+}
+
+static void MapGameActionEndpoints(WebApplication app)
+{
+    app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>
+    {
+        var (success, message, gameState) = await gameService.ReinforceAsync(gameId, request);
+        return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+    })
+    .WithName("Reinforce")
+    .WithTags("Game Actions");
+
+    app.MapPost("/api/games/{gameId}/attack", async (Guid gameId, [FromBody] AttackRequest request, IGameService gameService) =>
+    {
+        var result = await gameService.AttackAsync(gameId, request);
+        return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+    })
+    .WithName("Attack")
+    .WithTags("Game Actions");
+
+    app.MapPost("/api/games/{gameId}/fortify", async (Guid gameId, [FromBody] FortifyRequest request, IGameService gameService) =>
+    {
+        var (success, message, gameState) = await gameService.FortifyAsync(gameId, request);
+        return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+    })
+    .WithName("Fortify")
+    .WithTags("Game Actions");
+
+    app.MapPost("/api/games/{gameId}/endturn", async (Guid gameId, [FromBody] PlayerActionBase request, IGameService gameService) =>
+    {
+        var (success, message, gameState) = await gameService.EndTurnAsync(gameId, request.PlayerId);
+        return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+    })
+    .WithName("EndTurn")
+    .WithTags("Game Actions");
+
+    app.MapPost("/api/games/{gameId}/reinforcements/commit", async (Guid gameId, [FromBody] CommitReinforcementsRequest request, IGameService gameService) =>
+    {
+        var (success, message, gameState) = await gameService.CommitReinforcementsAsync(gameId, request.PlayerId, request.Placements);
+        return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+    })
+    .WithName("CommitReinforcements")
+    .WithTags("Game Actions");
+}
