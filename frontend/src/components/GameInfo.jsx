@@ -22,7 +22,7 @@ function GameInfo({ players, currentPlayerId, currentPhase }) {
             <h3>Información de la Partida</h3>
             
             <div className="info-item">
-                <strong>Fase Actual:</strong> 
+                <strong>Fase Actual</strong> 
                 <span style={{ color: '#81c784', fontWeight: '600' }}>{phaseName}</span>
             </div>
             

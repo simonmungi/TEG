@@ -7,23 +7,30 @@
   box-sizing: border-box;
 }
 
+html {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   background: #0f172a;
   min-height: 100vh;
+  width: 100%;
   color: #e2e8f0;
-  margin: 0;
-  padding: 0;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 .App {
   min-height: 100vh;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   padding: 20px;
   background: #1e293b;
-  border-left: 2px solid #334155;
-  border-right: 2px solid #334155;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
 }
 
@@ -53,7 +60,7 @@ body {
   transition: all 0.3s ease;
 }
 
-.api-error {
+.api-error, .error-state {
   background: #7f1d1d;
   border-color: #ef4444;
   color: #fecaca;
@@ -62,6 +69,10 @@ body {
 .api-error:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 40px rgba(239, 68, 68, 0.4);
+}
+
+.error-state {
+  text-align: center;
 }
 
 .loading-state {
@@ -87,13 +98,6 @@ body {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-
-.error-state {
-  background: #7f1d1d;
-  border-color: #ef4444;
-  color: #fecaca;
-  text-align: center;
 }
 
 .error-state button {
