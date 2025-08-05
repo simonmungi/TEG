@@ -19,25 +19,31 @@ function GameInfo({ players, currentPlayerId, currentPhase }) {
     return (
 
         <div className="game-info">
-
             <h3>Información de la Partida</h3>
+            
             <div className="info-item">
-                <strong>Turno de:</strong>
-                <span style={{ color: currentPlayer?.color || '#000', marginLeft: '5px', fontWeight: 'bold' }}>
-                    {currentPlayer?.name || 'N/A'}
-                </span>
+                <strong>Fase Actual:</strong> 
+                <span style={{ color: '#81c784', fontWeight: '600' }}>{phaseName}</span>
             </div>
-            <div className="info-item">
-                <strong>Fase Actual:</strong> {phaseName}
+            
+            <div className="players-section">
+                <ul className="players-list">
+                    {players.map(p => (
+                        <li key={p.id} className={`player-item ${p.id === currentPlayerId ? 'current-player' : ''}`}>
+                            <div className="player-name">
+                                <div 
+                                    className="color-indicator" 
+                                    style={{ backgroundColor: p.color }}
+                                ></div>
+                                <span style={{ color: p.color }}>{p.name}</span>
+                                {p.id === currentPlayerId && (
+                                    <span className="current-player-badge">Turno Actual</span>
+                                )}
+                            </div>
+                        </li>
+                    ))}
+                </ul>
             </div>
-            <h4>Jugadores:</h4>
-            <ul>
-                {players.map(p => (
-                    <li key={p.id} style={{ color: p.color }}>
-                        {p.name} {p.id === currentPlayerId ? ' (Turno Actual)' : ''}
-                    </li>
-                ))}
-            </ul>
         </div>
     );
 }
