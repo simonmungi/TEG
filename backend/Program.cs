@@ -23,47 +23,26 @@ app.Run();
 
 static void ConfigureServices(IServiceCollection services)
 {
-    ConfigureJsonSerialization(services);
-    ConfigureSwagger(services);
-    ConfigureGameServices(services);
-    ConfigureSignalR(services);
-    ConfigureCors(services);
-}
-
-static void ConfigureJsonSerialization(IServiceCollection services)
-{
     services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
     {
         options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-    
+
     services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-}
 
-static void ConfigureSwagger(IServiceCollection services)
-{
     services.AddEndpointsApiExplorer();
     services.AddSwaggerGen();
-}
 
-static void ConfigureGameServices(IServiceCollection services)
-{
     services.AddSingleton<IGameService, InMemoryGameService>();
-}
 
-static void ConfigureSignalR(IServiceCollection services)
-{
     services.AddSignalR().AddJsonProtocol(options =>
     {
         options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-}
 
-static void ConfigureCors(IServiceCollection services)
-{
     services.AddCors(options =>
     {
         options.AddPolicy(name: CORS_POLICY_NAME, policy =>
@@ -132,13 +111,6 @@ static void ConfigureMiddleware(WebApplication app)
 
 static void ConfigureEndpoints(WebApplication app)
 {
-    MapGameManagementEndpoints(app);
-    MapGameActionEndpoints(app);
-    app.MapHub<GameHub>("/gamehub");
-}
-
-static void MapGameManagementEndpoints(WebApplication app)
-{
     app.MapPost("/api/games", async (IGameService gameService, [FromBody] List<Player>? initialPlayers) =>
     {
         var newGame = await gameService.CreateNewGameAsync(initialPlayers);
@@ -154,10 +126,7 @@ static void MapGameManagementEndpoints(WebApplication app)
     })
     .WithName("GetGame")
     .WithTags("Game Management");
-}
-
-static void MapGameActionEndpoints(WebApplication app)
-{
+    //----------------------------------------------------------------------------------------------------------------------------------------
     app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>
     {
         var (success, message, gameState) = await gameService.ReinforceAsync(gameId, request);
@@ -197,4 +166,7 @@ static void MapGameActionEndpoints(WebApplication app)
     })
     .WithName("CommitReinforcements")
     .WithTags("Game Actions");
+    //----------------------------------------------------------------------------------------------------------------------------------------
+
+    app.MapHub<GameHub>("/gamehub");
 }

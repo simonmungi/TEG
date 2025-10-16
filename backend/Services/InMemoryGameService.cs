@@ -44,10 +44,33 @@ namespace backend.Services
                 Players = initialPlayers ?? new List<Player>()
             };
 
-            InitializeMap(newGame);
-            AssignInitialTerritories(newGame);
-            SetupTurnOrder(newGame);
+            //initialize map
+            var territories_extended = MapData.populateTerritories();
+            foreach (var t in territories_extended)
+            {
+                newGame.Territories.Add(t.Id, t);
+            }
+            
+            //Assign initial territories
+            //if (!newGame.Players.Any()) return;
+            var randomTerritoryIds = newGame.Territories.Keys.ToList();
+            var random = new Random();
+            randomTerritoryIds = randomTerritoryIds.OrderBy(t => random.Next()).ToList();
 
+            int playerIndex = 0;
+            foreach (var territoryId in randomTerritoryIds)
+            {
+                var territory = newGame.Territories[territoryId];
+                var owner = newGame.Players[playerIndex % newGame.Players.Count];
+                territory.OwnerPlayerId = owner.Id;
+                territory.Armies = 1;
+                playerIndex++;
+            }
+
+            //setup turn order
+            newGame.TurnOrder = newGame.Players.Select(p => p.Id).OrderBy(id => random.Next()).ToList();
+
+            //setup initial phase
             newGame.CurrentPhase = newGame.Players.Any() ? GamePhase.Reinforcement : GamePhase.WaitingForPlayers;
             newGame.CurrentPlayerId = newGame.TurnOrder.FirstOrDefault();
 
@@ -75,41 +98,6 @@ namespace backend.Services
             return Task.FromResult(game);
         }
 
-        private void InitializeMap(Game game)
-        {
-            var territories_extended = MapData.populateTerritories();
-            
-            foreach (var t in territories_extended)
-            {
-                game.Territories.Add(t.Id, t);
-            }
-        }
-
-        private void AssignInitialTerritories(Game game)
-        {
-            if (!game.Players.Any()) return;
-
-            var territoryIds = game.Territories.Keys.ToList();
-            var random = new Random();
-            territoryIds = territoryIds.OrderBy(t => random.Next()).ToList();
-
-            int playerIndex = 0;
-            foreach (var territoryId in territoryIds)
-            {
-                var territory = game.Territories[territoryId];
-                var owner = game.Players[playerIndex % game.Players.Count];
-                territory.OwnerPlayerId = owner.Id;
-                territory.Armies = 1;
-                playerIndex++;
-            }
-        }
-
-        private void SetupTurnOrder(Game game)
-        {
-            var random = new Random();
-            game.TurnOrder = game.Players.Select(p => p.Id).OrderBy(id => random.Next()).ToList();
-        }
-
         public async Task<(bool Success, string Message, Game? GameState)> ReinforceAsync(Guid gameId, ReinforceRequest request)
         {
             if (!_activeGames.TryGetValue(gameId, out var game))
@@ -124,7 +112,8 @@ namespace backend.Services
             game.PendingReinforcements -= request.ArmyCount;
 
             await NotifyGameStateUpdate(gameId, game);
-
+            await EndTurnAsync(gameId, game.CurrentPlayerId);
+            
             return (true, $"{request.ArmyCount} ejércitos añadidos a {territory.Name}.", game);
         }
 
@@ -418,7 +407,6 @@ namespace backend.Services
             }
             return (true, "Validación de confirmación de refuerzos exitosa.", game);
         }
-
 
         private List<int> RollDice(int count)
         {
