@@ -25,10 +25,10 @@ namespace backend.Services
             {
                 initialPlayers = new List<Player>
                 {
-                    new Player { Name = "Jugador 1", Color = "#a7c7e7" },
-                    new Player { Name = "Jugador 2", Color = "#f5cba7" },
-                    new Player { Name = "Jugador 3", Color = "#ab889e" },
-                    new Player { Name = "Jugador 4", Color = "#c30c22" },
+                    new Player { Name = "Jugador 1", Color = "Blue" },
+                    new Player { Name = "Jugador 2", Color = "Green" },
+                    new Player { Name = "Jugador 3", Color = "Yellow" },
+                    new Player { Name = "Jugador 4", Color = "Red" },
                 };
             }
             else
@@ -234,27 +234,32 @@ namespace backend.Services
         {
             if (game.CurrentPlayerId != request.PlayerId)
                 return (false, "No es tu turno.", game, null, null);
+
             if (game.CurrentPhase != GamePhase.Attack)
                 return (false, "No estás en la fase de ataque.", game, null, null);
 
             if (!game.Territories.TryGetValue(request.AttackingTerritoryId, out var attackerTerritory) ||
                 !game.Territories.TryGetValue(request.DefendingTerritoryId, out var defenderTerritory))
-            {
                 return (false, "Uno o ambos territorios no existen.", game, null, null);
-            }
 
             if (attackerTerritory.OwnerPlayerId != request.PlayerId)
                 return (false, "El territorio atacante no te pertenece.", game, attackerTerritory, defenderTerritory);
+
             if (defenderTerritory.OwnerPlayerId == request.PlayerId)
                 return (false, "No puedes atacar tu propio territorio.", game, attackerTerritory, defenderTerritory);
+
             if (defenderTerritory.OwnerPlayerId == null)
                 return (false, "No puedes atacar territorios neutrales (implementar reglas si se desea).", game, attackerTerritory, defenderTerritory);
+
             if (attackerTerritory.AdjacentTerritoriesIds == null || !attackerTerritory.AdjacentTerritoriesIds.Contains(request.DefendingTerritoryId))
-                 return (false, "Los territorios no son adyacentes.", game, attackerTerritory, defenderTerritory);
+                return (false, "Los territorios no son adyacentes.", game, attackerTerritory, defenderTerritory);
+
             if (attackerTerritory.Armies <= 1)
                 return (false, "Necesitas más de 1 ejército para atacar.", game, attackerTerritory, defenderTerritory);
+
             if (request.AttackingArmies <= 0 || request.AttackingArmies >= attackerTerritory.Armies)
                 return (false, $"Número de ejércitos atacantes inválido (1 a {attackerTerritory.Armies - 1}).", game, attackerTerritory, defenderTerritory);
+                
             if (defenderTerritory.Armies <= 0) // Ya debería ser del atacante si tiene 0
                 return (false, "El territorio defensor no tiene ejércitos.", game, attackerTerritory, defenderTerritory);
 
