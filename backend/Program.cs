@@ -141,6 +141,9 @@ static void ProcessCommand(Game game, string input, IGameService gameService)
         case "attack":
             ViewAttackList(game, gameService);
             break;
+        case "reinforce":
+            ViewReinforceList(game, gameService, arguments);
+            break;
         case "end":
             break;
         default:
@@ -272,6 +275,76 @@ static async Task ViewAttackList(Game game, IGameService gameService)
     }
 }
 
+static async Task ViewReinforceList(Game game, IGameService gameService, string[] arguments)
+{
+    var currentPlayer = game.Players.FirstOrDefault(x => x.Id == game.CurrentPlayerId);
+    if (currentPlayer == null)
+    {
+        Console.WriteLine("Jugador actual no encontrado.");
+        return;
+    }
+
+    var playerTerritories = game.Territories
+        .Where(x => x.Value.OwnerPlayerId == currentPlayer.Id && x.Value.Clickable)
+        .ToList();
+
+    PrintTerritories(playerTerritories);
+
+    Console.Write($" >> Seleccione un país a reforzar: ");
+    while (true)
+    {
+
+        if (arguments.Length == 0)
+            return;
+
+        var countryToReinforceName = arguments[0];
+
+        var countryToReinforce = FindTerritoryByName(game.Territories, countryToReinforceName);
+        if (countryToReinforce.Value == null)
+        {
+            Console.WriteLine("Pais no encontrado");
+            continue;
+        }
+        
+        var armiesInput = arguments[1];
+
+        if (string.IsNullOrWhiteSpace(armiesInput))
+        {
+            Console.WriteLine(">> Número no válido.");
+            return;
+        }
+
+        if (!int.TryParse(armiesInput, out int armies))
+        {
+            Console.WriteLine(">> Debe ingresar un número entero válido.");
+            return;
+        }
+
+        if (armies <= 0)
+        {
+            Console.WriteLine(">> El número debe ser mayor que cero.");
+            return;
+        }
+
+        Console.WriteLine($"INICIANDO REFUERZO EN {countryToReinforce.Value.Name.ToUpper()}");
+
+        var reinforceRequest = new List<ReinforcementPlacementDto>
+        {
+            new ReinforcementPlacementDto
+            {
+                TerritoryId = countryToReinforce.Key,
+                ArmyCount = armies
+            }
+        };
+
+        var result = await gameService.CommitReinforcementsAsync(game.Id,currentPlayer.Id, reinforceRequest);
+        Console.WriteLine(result.ToString());
+        Console.WriteLine($">> Refuerzos restantes: {game.PendingReinforcements}");
+        return;
+    }
+}
+
+
 static KeyValuePair<string, Territory>? TryFindTerritoryByName(
     IEnumerable<KeyValuePair<string, Territory>> territories,
     string name)
@@ -334,13 +407,13 @@ static void ConfigureEndpoints(WebApplication app)
     .WithName("GetGame")
     .WithTags("Game Management");
     //----------------------------------------------------------------------------------------------------------------------------------------
-    app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>
-    {
-        var (success, message, gameState) = await gameService.ReinforceAsync(gameId, request);
-        return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
-    })
-    .WithName("Reinforce")
-    .WithTags("Game Actions");
+    // app.MapPost("/api/games/{gameId}/reinforce", async (Guid gameId, [FromBody] ReinforceRequest request, IGameService gameService) =>
+    // {
+    //     var (success, message, gameState) = await gameService.ReinforceAsync(gameId, request);
+    //     return success ? Results.Ok(new { message, gameState }) : Results.BadRequest(new { message });
+    // })
+    // .WithName("Reinforce")
+    // .WithTags("Game Actions");
 
     app.MapPost("/api/games/{gameId}/attack", async (Guid gameId, [FromBody] AttackRequest request, IGameService gameService) =>
     {
